@@ -3,7 +3,7 @@ open Syntax
 
 include Monad.S
 
-val run : 'a m -> 'a
+val run_exn : 'a m -> 'a
 
 val eval : env -> ltm -> gtm m
 val eval_tp : env -> ltp -> gtp m

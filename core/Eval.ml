@@ -87,17 +87,17 @@ let eval_tp_step env : ltp -> gtp instr =
   | LBool ->
     ret GBool
 
-let rec run : type a. a m -> a =
+let rec run_exn : type a. a m -> a =
   fun instr ->
   match instr with
   | Ret a -> a
   | Bind (m, k) -> 
-    let x = run m in
-    run @@ k x
+    let x = run_exn m in
+    run_exn @@ k x
   | Eval (env, ltm) -> 
-    run @@ eval_step env ltm
+    run_exn @@ eval_step env ltm
   | EvalTp (env, ltp) -> 
-    run @@ eval_tp_step env ltp
+    run_exn @@ eval_tp_step env ltp
   | Throw exn ->
     raise exn
 

@@ -21,17 +21,17 @@ and tp_of_gneu =
   | GSnoc (gneu, gfrm) ->
     match tp_of_gneu gneu, gfrm with
     | GPi (_, lfam, env), GApp gtm ->
-      Eval.run @@ Eval.eval_tp (Env.append env gtm) lfam
+      Eval.run_exn @@ Eval.eval_tp (Env.append env gtm) lfam
     | GSg (gbase, _, _), GFst -> 
       gbase
     | GSg (_, lfam, env), GSnd -> 
       let gfst = GEta (GSnoc (gneu, GFst)) in
-      Eval.run @@ Eval.eval_tp (Env.append env gfst) lfam
+      Eval.run_exn @@ Eval.eval_tp (Env.append env gfst) lfam
     | _ -> 
       raise Impossible
 
 
-module M = Local
+module M = RefineM
 
 let rec equate_gtp : gtp -> gtp -> unit M.m = 
   let open Monad.Notation (M) in
@@ -44,8 +44,8 @@ let rec equate_gtp : gtp -> gtp -> unit M.m =
     M.scope gbase0 @@ fun x ->
     let envx0 = Env.append env0 x in
     let envx1 = Env.append env1 x in
-    let gfib0 = Eval.run @@ Eval.eval_tp envx0 lfam0 in
-    let gfib1 = Eval.run @@ Eval.eval_tp envx1 lfam1 in
+    let* gfib0 = M.lift_eval @@ Eval.eval_tp envx0 lfam0 in
+    let* gfib1 = M.lift_eval @@ Eval.eval_tp envx1 lfam1 in
     equate_gtp gfib0 gfib1
   | _ ->
-    raise UnequalTypes
+    M.throw UnequalTypes

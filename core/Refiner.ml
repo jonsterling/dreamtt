@@ -4,18 +4,18 @@ open Syntax
 
 exception TypeError
 
-module M = Local
+module M = RefineM
 open Monad.Notation (M)
 
 type chk = gtp -> ltm M.m 
 type syn = gtm M.m
 
 let run_chk (chk : chk) gtp = 
-  let ltm = M.run Env.empty @@ chk gtp in
-  Eval.run @@ Eval.eval Env.empty ltm
+  let ltm = M.run_exn Env.empty @@ chk gtp in
+  Eval.run_exn @@ Eval.eval Env.empty ltm
 
 let run_syn syn = 
-  M.run Env.empty syn
+  M.run_exn Env.empty syn
 
 let with_tp kont tp = 
   kont tp tp
@@ -26,22 +26,22 @@ let core =
 let tt : chk =
   function
   | GBool -> M.ret LTt
-  | _ -> raise TypeError
+  | _ -> M.throw TypeError
 
 let ff : chk =
   function
   | GBool -> M.ret LFf
-  | _ -> raise TypeError
+  | _ -> M.throw TypeError
 
 let inst_tp_fam : ltp -> env -> gtm -> gtp M.m =
   fun lfam env gtm ->
   let envx = Env.append env gtm in
-  M.ret @@ Eval.run @@ Eval.eval_tp envx lfam
+  M.lift_eval @@ Eval.eval_tp envx lfam
 
 let inst_tm_fam : ltm -> env -> gtm -> gtm M.m =
   fun lfam env gtm ->
   let envx = Env.append env gtm in
-  M.ret @@ Eval.run @@ Eval.eval envx lfam
+  M.lift_eval @@ Eval.eval envx lfam
 
 let lam (bdy : gtm -> chk) : chk = 
   function
@@ -50,49 +50,49 @@ let lam (bdy : gtm -> chk) : chk =
     let+ lbdy = bdy var @<< inst_tp_fam lfam env var in
     LLam (gfam, lbdy)
   | _ -> 
-    raise TypeError
+    M.throw TypeError
 
 let pair (chk0 : chk) (chk1 : chk) : chk = 
   function
   | GSg ((gbase, lfam, lfam_env) as gfam) ->
     let* ltm0 = chk0 gbase in
     let* gtm0 = 
-      let+ env = M.get_env in
-      Eval.run @@ Eval.eval env ltm0 
+      let* env = M.get_env in
+      M.lift_eval @@ Eval.eval env ltm0 
     in
     let+ ltm1 = chk1 @<< inst_tp_fam lfam lfam_env gtm0 in
     LPair (gfam, ltm0, ltm1)
   | _ ->
-    raise TypeError
+    M.throw TypeError
 
 let app (fn : syn) (arg : chk) : syn = 
   let* gtm0 = fn in
   match Theory.tp_of_gtm gtm0 with
   | GPi (gbase, _, _) ->
-    let+ larg = arg gbase
-    and+ env = M.get_env in
-    Eval.run @@
+    let* larg = arg gbase in
+    let* env = M.get_env in
+    M.lift_eval @@
     let open Monad.Notation (Eval) in
     let* gtm1 = Eval.eval env larg in
     Eval.gapp gtm0 gtm1
   | _ -> 
-    raise TypeError
+    M.throw TypeError
 
 let fst (syn : syn) : syn = 
   let* gtm = syn in
   match Theory.tp_of_gtm gtm with
   | GSg _ ->
-    M.ret @@ Eval.run @@ Eval.gfst gtm
+    M.lift_eval @@ Eval.gfst gtm
   | _ ->
-    raise TypeError
+    M.throw TypeError
 
 let snd (syn : syn) : syn = 
   let* gtm = syn in
   match Theory.tp_of_gtm gtm with
   | GSg _ ->
-    M.ret @@ Eval.run @@ Eval.gsnd gtm
+    M.lift_eval @@ Eval.gsnd gtm
   | _ ->
-    raise TypeError
+    M.throw TypeError
 
 
 let rec conv_ : gtm -> chk =
@@ -130,7 +130,7 @@ and conv_neu_ : gneu -> ltm M.m =
           let+ ltm' = conv_ gtm gbase in
           LApp (ltm, ltm')
         | _ -> 
-          raise TypeError
+          M.throw TypeError
       end
 
 let conv : syn -> chk =
