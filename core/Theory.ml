@@ -44,14 +44,6 @@ and tp_of_gneu =
         raise Impossible
     end
 
-module Tm : Local.Tm with type tp = gtp and type tm = gtm =
-struct
-  type tp = gtp 
-  type tm = gtm 
-  let var gtp lvl =
-    GEta (GVar (lvl, gtp))
-end
-
 module M = Local.M
 
 let rec equate_gtp : gtp -> gtp -> unit M.m = 
