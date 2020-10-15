@@ -56,9 +56,8 @@ let lam (bdy : gtm -> chk) : chk =
   function
   | GPi ((gbase, lfam, env) as gfam) ->
     M.scope gbase @@ fun var ->
-    let* gfib = inst_tp_fam lfam env var in
-    let* lbdy = bdy var gfib in
-    M.ret @@ LLam (gfam, lbdy)
+    let+ lbdy = bdy var @<< inst_tp_fam lfam env var in
+    LLam (gfam, lbdy)
   | _ -> 
     raise TypeError
 
@@ -70,10 +69,7 @@ let pair (chk0 : chk) (chk1 : chk) : chk =
       let+ env = M.get_env in
       Eval.run @@ Eval.eval env ltm0 
     in
-    let+ ltm1 = 
-      let* gfib = inst_tp_fam lfam lfam_env gtm0 in
-      chk1 gfib 
-    in
+    let+ ltm1 = chk1 @<< inst_tp_fam lfam lfam_env gtm0 in
     LPair (gfam, ltm0, ltm1)
   | _ ->
     raise TypeError
@@ -82,9 +78,9 @@ let app (fn : syn) (arg : chk) : syn =
   let* gtm0 = fn in
   match Theory.tp_of_gtm gtm0 with
   | GPi (gbase, _, _) ->
-    let* larg = arg gbase in
-    let* env = M.get_env in
-    M.ret @@ Eval.run @@
+    let+ larg = arg gbase
+    and+ env = M.get_env in
+    Eval.run @@
     let open Monad.Notation (Eval) in
     let* gtm1 = Eval.eval env larg in
     Eval.gapp gtm0 gtm1
@@ -122,23 +118,22 @@ let rec conv_ : gtm -> chk =
     fun gtp ->
       let gtp' = Theory.tp_of_gneu gneu in
       let () = Theory.equate_gtp gtp gtp' in
-      let* ltm = conv_neu_ gneu in
-      M.ret @@ ltm
+      conv_neu_ gneu
 
 and conv_neu_ : gneu -> ltm M.m =
   function
   | GVar (lvl, _) -> 
-    let* env = M.get_env in
+    let+ env = M.get_env in
     let ix = Env.lvl_to_ix env lvl in 
-    M.ret @@ LVar ix
+    LVar ix
 
   | GApp (gneu, gtm) -> 
     let* ltm0 = conv_neu_ gneu in
     begin
       match Theory.tp_of_gneu gneu with
       | GPi (gbase, _, _) -> 
-        let* ltm1 = conv_ gtm gbase in
-        M.ret @@ LApp (ltm0, ltm1)
+        let+ ltm1 = conv_ gtm gbase in
+        LApp (ltm0, ltm1)
       | _ -> 
         raise TypeError
     end
