@@ -4,16 +4,7 @@ open Syntax
 
 exception TypeError
 
-module Tm : Local.Tm with type tp = gtp and type tm = gtm =
-struct
-  type tp = gtp 
-  type tm = gtm 
-  let var gtp lvl =
-    GEta (GVar (lvl, gtp))
-end
-
-
-module M = Local.Make (Tm)
+module M = Local.M
 open Monad.Notation (M)
 
 type chk = gtp -> ltm M.m 
@@ -117,7 +108,7 @@ let rec conv_ : gtm -> chk =
   | GEta gneu -> 
     fun gtp ->
       let gtp' = Theory.tp_of_gneu gneu in
-      let () = Theory.equate_gtp gtp gtp' in
+      let* () = Theory.equate_gtp gtp gtp' in
       conv_neu_ gneu
 
 and conv_neu_ : gneu -> ltm M.m =

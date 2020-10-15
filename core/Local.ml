@@ -1,3 +1,5 @@
+open Basis
+
 module type Tm =
 sig
   type tp
@@ -5,19 +7,22 @@ sig
   val var : tp -> Env.lvl -> tm
 end
 
-module Make (Tm : Tm) : sig
-  type 'a m
+module type S = 
+sig
+  type tp 
+  type tm
 
-  val scope : Tm.tp -> (Tm.tm -> 'a m) -> 'a m
-  val ret : 'a -> 'a m
-  val bind : 'a m -> ('a -> 'b m) -> 'b m
-  val map : ('a -> 'b) -> 'a m -> 'b m
+  include Monad.S
+  val run : tm Env.t -> 'a m -> 'a
+  val scope : tp -> (tm -> 'a m) -> 'a m
+  val get_env : tm Env.t m
+end
 
-  val run : Tm.tm Env.t -> 'a m -> 'a
 
-  val get_env : Tm.tm Env.t m
-end = 
+module Make (Tm : Tm) =
 struct
+  include Tm 
+
   type env = Tm.tm Env.t
   type 'a m = env -> 'a
 
@@ -31,9 +36,6 @@ struct
     fun env ->
     f (m env) env
 
-  let map f m =
-    bind m @@ fun x -> ret (f x)
-
   let scope (tp : Tm.tp) (k : Tm.tm -> 'a m) : 'a m = 
     fun env ->
     let x = Tm.var tp @@ Env.fresh env in 
@@ -43,4 +45,13 @@ struct
     env
 end
 
+module Tm = 
+struct
+  open Syntax
+  type tp = gtp 
+  type tm = gtm 
+  let var gtp lvl =
+    GEta (GVar (lvl, gtp))
+end
 
+module M = Make (Tm)

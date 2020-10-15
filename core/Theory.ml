@@ -1,7 +1,8 @@
+open Basis
+open Syntax
+
 exception UnequalTypes
 exception Impossible
-
-open Syntax
 
 
 let rec tp_of_gtm = 
@@ -43,21 +44,29 @@ and tp_of_gneu =
         raise Impossible
     end
 
+module Tm : Local.Tm with type tp = gtp and type tm = gtm =
+struct
+  type tp = gtp 
+  type tm = gtm 
+  let var gtp lvl =
+    GEta (GVar (lvl, gtp))
+end
 
-let rec equate_gtp : gtp -> gtp -> unit =
+module M = Local.M
+
+let rec equate_gtp : gtp -> gtp -> unit M.m = 
+  let open Monad.Notation (M) in
   fun gtp0 gtp1 ->
   match gtp0, gtp1 with
-  | GBool, GBool -> ()
+  | GBool, GBool -> M.ret ()
   | GPi (gbase0, lfam0, env0), GPi (gbase1, lfam1, env1) 
   | GSg (gbase0, lfam0, env0), GSg (gbase1, lfam1, env1) -> 
-    let () = equate_gtp gbase0 gbase1 in
-    let cx = max (Env.size env0) (Env.size env1) in
-    let x = GEta (GVar (Env.lvl cx, gbase0)) in
+    let* () = equate_gtp gbase0 gbase1 in
+    M.scope gbase0 @@ fun x ->
     let envx0 = Env.append env0 x in
     let envx1 = Env.append env1 x in
     let gfib0 = Eval.run @@ Eval.eval_tp envx0 lfam0 in
     let gfib1 = Eval.run @@ Eval.eval_tp envx1 lfam1 in
     equate_gtp gfib0 gfib1
-  | _ -> 
+  | _ ->
     raise UnequalTypes
-
