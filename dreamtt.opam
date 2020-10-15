@@ -1,0 +1,23 @@
+opam-version: "2.0"
+name: "dreamtt"
+version: "0.1"
+synopsis: "A minimal implementation of abstract bidirectional elaboration"
+description: """
+A minimal implementation of abstract bidirectional elaboration
+"""
+maintainer: "Jonathan Sterling <jon@jonmsterling.com>"
+authors: "Jonathan Sterling <jon@jonmsterling.com>"
+license: ""
+homepage: "http://jonsterling.github.io/dreamtt/"
+bug-reports: "https://github.com/jonsterling/dreamtt/issues"
+dev-repo: "https://github.com/jonsterling/dreamtt"
+depends: [
+  "dune" {>= "2.0"}
+  "ocaml" {>= "4.10.0"}
+  "cmdliner" {>= "1.0"}
+  "menhir" {>= "20180703"}
+  "uuseg" {>= "12.0.0"}
+  "uutf" {>= "1.0.2"}
+]
+build: [["dune" "build" "-p" name "-j" jobs]]
+

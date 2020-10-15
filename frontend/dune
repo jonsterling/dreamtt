@@ -1,0 +1,8 @@
+(library
+ (name Frontend)
+ (libraries dreamtt.basis dreamtt.core)
+ (flags
+  (:standard -w -37))
+ (public_name dreamtt.fontend))
+
+

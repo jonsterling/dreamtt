@@ -1,0 +1,9 @@
+(executables
+ (names main)
+ (libraries dreamtt.core))
+
+(install
+ (section bin)
+ (package dreamtt)
+ (files
+  (main.exe as dreamtt)))

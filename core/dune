@@ -1,0 +1,7 @@
+(library
+ (name Core)
+ (libraries dreamtt.basis)
+ (flags
+  (:standard -w -37))
+ (public_name dreamtt.core))
+
