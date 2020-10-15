@@ -14,5 +14,4 @@ jobs:
       with:
         ocaml-version: ${{ matrix.ocaml-version }}
     - run: opam pin add -y dreamtt .
-    - run: make
-    - run: make test
+    - run: opam exec -- dune build
