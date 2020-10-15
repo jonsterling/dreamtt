@@ -13,6 +13,8 @@ val throw : exn -> 'a m
 
 (** {1 Control operators} *)
 
+(** Extend the ambient context with a variable of a given type; the variable is
+    passed to the continuation. *)
 val scope : tp -> (tm -> 'a m) -> 'a m
 
 
