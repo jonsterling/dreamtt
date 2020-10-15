@@ -4,7 +4,7 @@ open Syntax
 
 exception TypeError
 
-module M = Local.M
+module M = Local
 open Monad.Notation (M)
 
 type chk = gtp -> ltm M.m 

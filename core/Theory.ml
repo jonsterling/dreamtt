@@ -31,7 +31,7 @@ and tp_of_gneu =
       raise Impossible
 
 
-module M = Local.M
+module M = Local
 
 let rec equate_gtp : gtp -> gtp -> unit M.m = 
   let open Monad.Notation (M) in
