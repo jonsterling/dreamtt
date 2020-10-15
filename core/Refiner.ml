@@ -118,24 +118,20 @@ and conv_neu_ : gneu -> ltm M.m =
     let ix = Env.lvl_to_ix env lvl in 
     LVar ix
 
-  | GApp (gneu, gtm) -> 
-    let* ltm0 = conv_neu_ gneu in
-    begin
-      match Theory.tp_of_gneu gneu with
-      | GPi (gbase, _, _) -> 
-        let+ ltm1 = conv_ gtm gbase in
-        LApp (ltm0, ltm1)
-      | _ -> 
-        raise TypeError
-    end
-
-  | GFst gneu ->
-    let+ ltm = conv_neu_ gneu in
-    LFst ltm
-
-  | GSnd gneu ->
-    let+ ltm = conv_neu_ gneu in
-    LSnd ltm
+  | GSnoc (gneu, gfrm) ->
+    let* ltm = conv_neu_ gneu in
+    match gfrm with
+    | GFst -> M.ret @@ LFst ltm
+    | GSnd -> M.ret @@ LSnd ltm
+    | GApp gtm -> 
+      begin
+        match Theory.tp_of_gneu gneu with
+        | GPi (gbase, _, _) -> 
+          let+ ltm' = conv_ gtm gbase in
+          LApp (ltm, ltm')
+        | _ -> 
+          raise TypeError
+      end
 
 let conv : syn -> chk =
   fun syn gtp -> 

@@ -31,7 +31,7 @@ let gapp gtm0 gtm1 : gtm m =
     let tm_env = Env.append tm_env gtm1 in
     eval tm_env ltm
   | GEta gneu ->
-    ret @@ GEta (GApp (gneu, gtm1))
+    ret @@ GEta (GSnoc (gneu, GApp gtm1))
   | _ ->
     throw Impossible
 
@@ -40,7 +40,7 @@ let gfst gtm =
   | GPair(_, gtm0, _) -> 
     ret gtm0
   | GEta gneu ->
-    ret @@ GEta (GFst gneu)
+    ret @@ GEta (GSnoc (gneu, GFst))
   | _ ->
     throw Impossible
 
@@ -49,7 +49,7 @@ let gsnd gtm =
   | GPair(_, _, gtm1) -> 
     ret gtm1
   | GEta gneu ->
-    ret @@ GEta (GSnd gneu)
+    ret @@ GEta (GSnoc (gneu, GSnd))
   | _ ->
     throw Impossible
 

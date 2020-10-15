@@ -18,31 +18,18 @@ let rec tp_of_gtm =
 and tp_of_gneu = 
   function
   | GVar (_, gtp) -> gtp
-  | GApp (gneu, gtm) ->
-    begin
-      match tp_of_gneu gneu with
-      | GPi (_, lfam, env) -> 
-        Eval.run @@ Eval.eval_tp (Env.append env gtm) lfam
-      | _ -> 
-        raise Impossible
-    end
-  | GFst gneu ->
-    begin
-      match tp_of_gneu gneu with
-      | GSg (gbase, _, _) -> 
-        gbase
-      | _ -> 
-        raise Impossible
-    end
-  | GSnd gneu ->
-    begin
-      match tp_of_gneu gneu with
-      | GSg (_, lfam, env) -> 
-        let gfst = GEta (GFst gneu) in
-        Eval.run @@ Eval.eval_tp (Env.append env gfst) lfam
-      | _ -> 
-        raise Impossible
-    end
+  | GSnoc (gneu, gfrm) ->
+    match tp_of_gneu gneu, gfrm with
+    | GPi (_, lfam, env), GApp gtm ->
+      Eval.run @@ Eval.eval_tp (Env.append env gtm) lfam
+    | GSg (gbase, _, _), GFst -> 
+      gbase
+    | GSg (_, lfam, env), GSnd -> 
+      let gfst = GEta (GSnoc (gneu, GFst)) in
+      Eval.run @@ Eval.eval_tp (Env.append env gfst) lfam
+    | _ -> 
+      raise Impossible
+
 
 module M = Local.M
 

@@ -50,9 +50,12 @@ and gtm =
 
 and gneu = 
   | GVar of Env.lvl * gtp
-  | GApp of gneu * gtm
-  | GFst of gneu
-  | GSnd of gneu
+  | GSnoc of gneu * gfrm
+
+and gfrm =
+  | GFst 
+  | GSnd
+  | GApp of gtm
 
 and env = gtm Env.t
 
