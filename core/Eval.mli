@@ -1,6 +1,8 @@
+open Basis
 open Syntax
 
-type 'a m
+include Monad.S
+
 val run : 'a m -> 'a
 
 val eval : env -> ltm -> gtm m

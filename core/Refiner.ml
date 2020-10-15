@@ -84,7 +84,10 @@ let app (fn : syn) (arg : chk) : syn =
   | GPi (gbase, _, _) ->
     let* larg = arg gbase in
     let* env = M.get_env in
-    M.ret @@ Eval.run @@ Eval.gapp gtm0 @@ Eval.run @@ Eval.eval env larg
+    M.ret @@ Eval.run @@
+    let open Monad.Notation (Eval) in
+    let* gtm1 = Eval.eval env larg in
+    Eval.gapp gtm0 gtm1
   | _ -> 
     raise TypeError
 
