@@ -10,7 +10,7 @@ open Core
     introduction forms from elimination forms; unlike some classic
     bidirectional algorithms, this distinction does not line up exactly with {i
     checking} vs. {i synthesis}, but it interacts with it in a non-trivial way:
-    we only syn_rulethesize elimination forms at positive types. *)
+    we only synthesize elimination forms at positive types. *)
 type code = R of rcode | L of lcode
 
 (** [rcode] is a type of introduction forms *)
@@ -37,7 +37,7 @@ sig
   (** Checking introduction forms against their types. *)
   val elab_chk_rcode : rcode -> R.chk_rule m
 
-  (** Rather than transitioning immediately to syn_rulethesis when we hit an [lcode],
+  (** Rather than transitioning immediately to synthesize when we hit an [lcode],
       we perform type-directed eta expansion. This is the main ingredient to
       enable smooth elaboration of subtypes, including the "retyping principles"
       familiar from ML modules. *)
