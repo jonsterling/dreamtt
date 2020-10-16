@@ -3,6 +3,7 @@ include Theory
 module Env = Env
 module Theory = Theory
 module Syntax = Syntax
+module Local = Local
 include Syntax
 
 module Proof =

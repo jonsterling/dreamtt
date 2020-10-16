@@ -1,3 +1,4 @@
+open Basis
 open Core
 
 (** {1 The source language} 
@@ -43,3 +44,12 @@ val chk_lcode : resolver -> lcode -> R.chk
 (** Elaborating an elimination form. *)
 val syn_lcode : resolver -> lcode -> R.syn
 
+
+(** {1 Distillation} *)
+
+(** The distiller takes a core-language term and turns it into a source language code. *)
+module Distiller : sig
+  include Monad.S 
+  val run_exn : string Env.t -> 'a m -> 'a
+  val distill_ltm : Syntax.ltm -> code m
+end

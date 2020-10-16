@@ -1,24 +1,37 @@
 open Basis
 
-type tp = Syntax.gtp
-type tm = Syntax.gtm
+module type S = 
+sig
+  type sort
+  type elt
 
-include Monad.S
+  include Monad.S
+
+  (** {1 Operations} *)
+
+  val get_env : elt Env.t m
+  val throw : exn -> 'a m
+
+  (** {1 Control operators} *)
+
+  (** Extend the ambient context with a variable of a given sort; the variable is
+      passed to the continuation. *)
+  val scope : sort -> (elt -> 'a m) -> 'a m
 
 
-(** {1 Operations} *)
+  (** {1 Runners} *)
 
-val get_env : tm Env.t m
-val throw : exn -> 'a m
+  val run : elt Env.t -> 'a m -> ('a, exn) Result.t
+  val run_exn : elt Env.t -> 'a m -> 'a
+end
 
-(** {1 Control operators} *)
+module type Elt = 
+sig
+  type sort
+  type elt
 
-(** Extend the ambient context with a variable of a given type; the variable is
-    passed to the continuation. *)
-val scope : tp -> (tm -> 'a m) -> 'a m
+  val var : sort -> Env.lvl -> elt
+end
 
-
-(** {1 Runners} *)
-
-val run : tm Env.t -> 'a m -> ('a, exn) Result.t
-val run_exn : tm Env.t -> 'a m -> 'a
+module Make (E : Elt) : S with type sort = E.sort and type elt = E.elt
+module M : S with type sort = Syntax.gtp and type elt = Syntax.gtm

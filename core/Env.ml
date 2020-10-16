@@ -1,6 +1,7 @@
 type 'a t = 'a list
 type ix = Ix of int
 type lvl = Lvl of int
+let int_of_lvl (Lvl lvl) = lvl
 let empty = []
 let size = List.length
 let append xs x = x :: xs

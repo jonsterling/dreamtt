@@ -8,6 +8,7 @@ type ix
 
 (** A pointer to a cell in the environment, counted from the left. *)
 type lvl 
+val int_of_lvl : lvl -> int
 
 val empty : 'a t
 

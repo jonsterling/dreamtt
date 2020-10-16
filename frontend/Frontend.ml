@@ -1,3 +1,4 @@
+open Basis
 open Core
 
 (* {1 The source language} *)
@@ -67,3 +68,58 @@ and syn_lcode res : lcode -> R.syn =
     R.snd @@ syn_code res code
   | Core tm ->
     R.core tm 
+
+
+
+module S = Syntax
+
+module NameSupply : Local.Elt with type sort = unit and type elt = string = 
+struct
+  type sort = unit
+  type elt = string
+
+  let var () lvl = 
+    "x" ^ string_of_int (Env.int_of_lvl lvl) 
+end
+
+module Distiller =
+struct
+  module M = Local.Make (NameSupply)
+  open Monad.Notation (M)
+
+  include M
+
+  let rec distill_ltm : S.ltm -> code m = 
+    function
+    | LVar ix -> 
+      let+ env = get_env in
+      let x = Env.proj env ix in
+      L (Var x)
+
+    | LTt -> ret @@ R Tt
+
+    | LFf -> ret @@ R Ff
+
+    | LFst tm ->
+      let+ code = distill_ltm tm in
+      L (Fst code)
+
+    | LSnd tm ->
+      let+ code = distill_ltm tm in
+      L (Snd code)
+
+    | LLam (_, tm) -> 
+      M.scope () @@ fun x ->
+      let+ code = distill_ltm tm in
+      R (Lam (x, code))
+
+    | LApp (tm0, tm1) -> 
+      let+ code0 = distill_ltm tm0 
+      and+ code1 = distill_ltm tm1 in
+      L (App (code0, code1))
+
+    | LPair (_, tm0, tm1) ->
+      let+ code0 = distill_ltm tm0
+      and+ code1 = distill_ltm tm1 in
+      R (Pair (code0, code1))
+end

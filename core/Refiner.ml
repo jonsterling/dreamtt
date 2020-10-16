@@ -10,9 +10,12 @@ open Monad.Notation (M)
 type chk = gtp -> ltm M.m 
 type syn = gtm M.m
 
+let chk_to_ltm (chk : chk) gtp = 
+  M.run_exn Env.empty @@ chk gtp
+
 let run_chk (chk : chk) gtp = 
-  let ltm = M.run_exn Env.empty @@ chk gtp in
-  Eval.run_exn @@ Eval.eval Env.empty ltm
+  Eval.run_exn @@ Eval.eval Env.empty @@
+  chk_to_ltm chk gtp
 
 let run_syn syn = 
   M.run_exn Env.empty syn

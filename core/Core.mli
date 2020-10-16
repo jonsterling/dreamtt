@@ -9,6 +9,7 @@
 module Env = Env
 module Syntax = Syntax
 module Theory = Theory
+module Local = Local
 
 (** {2 Proof abstraction boundary} *)
 
@@ -64,6 +65,9 @@ module Refiner : sig
   (** A {!chk} refinement script may be executed relative to a given type;
       when it returns a value, that value is guaranteed to have the type given. *)
   val run_chk : chk -> tp -> tm
+
+  (** It is also useful to read a local term off a refinement script. *)
+  val chk_to_ltm : chk -> tp -> Syntax.ltm
 
   (** {1 Inference rules} *)
 
