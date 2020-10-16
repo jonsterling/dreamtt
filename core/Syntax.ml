@@ -1,11 +1,10 @@
-(** The core language syntax is split into two representations, after Coquand:
+(** {1 Core language representations } 
+
+    The core language syntax is split into two representations, after Coquand:
     a local form that is sensitive to the context (using De Bruijn indices),
     and a global form that is insensitive to the context (using De Bruijn
     levels). 
 
-*)
-
-(** {1 Core language representations } 
 
     The "local" syntax corresponds to ordinary syntax, and the "global" syntax
     corresponds to weak head normal forms in many NbE-style implementations. We

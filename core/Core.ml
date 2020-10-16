@@ -1,9 +1,16 @@
-include Syntax
-
 include Theory
 
-type tp = gtp
-type tm = gtm
+module Syntax = Syntax
+include Syntax
+
+module Proof =
+struct
+  type 'a t = 'a
+  let out x = x
+end
+
+type tp = gtp Proof.t
+type tm = gtm Proof.t
 
 let tp_of_tm = Theory.tp_of_gtm
 

@@ -6,10 +6,21 @@
     {!tp} or {!tm} can be used in any scope.
 *)
 
-type tp
-type tm
+module Syntax = Syntax
 
-(** Core language terms carry their own (unique) type. *)
+(** {2 Proof abstraction boundary} *)
+
+(** We wrap the syntax in an abstraction boundary à la LCF. *)
+
+module Proof : 
+sig
+  type 'a t
+  val out : 'a t -> 'a
+end
+
+type tp = Syntax.gtp Proof.t
+type tm = Syntax.gtm Proof.t
+
 val tp_of_tm : tm -> tp
 
 (** {2 Inspecting types} *)
@@ -84,10 +95,3 @@ module Refiner : sig
 
   val with_tp : (tp -> chk) -> chk
 end
-
-(** {1 Internals} 
-*)
-
-
-(** The implementation of the core is non-trivial! It is worth studying the internals. *)
-module Private := Core__
