@@ -1,5 +1,7 @@
 include Theory
 
+module Env = Env
+module Theory = Theory
 module Syntax = Syntax
 include Syntax
 

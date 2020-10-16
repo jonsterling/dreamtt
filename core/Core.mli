@@ -7,9 +7,7 @@
 *)
 
 module Env = Env
-
 module Syntax = Syntax
-
 module Theory = Theory
 
 (** {2 Proof abstraction boundary} *)

@@ -1,4 +1,4 @@
-(** The core langauge syntax representation *)
+(** The core language syntax representation *)
 
 
 (** {1 Core language representations } 
