@@ -5,6 +5,20 @@ sig
   val bind : 'a m -> ('a -> 'b m) -> 'b m
 end
 
+module type Reader =
+sig
+  type local
+  include S
+
+  val read : local m
+  val locally : (local -> local) -> 'a m -> 'a m
+
+  val reader : (local -> 'a) -> 'a m
+  val run : local -> 'a m -> 'a
+end
+
+module Reader (L : sig type local end) : Reader with type local = L.local
+
 module type Notation =
 sig
   type 'a m

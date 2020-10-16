@@ -9,91 +9,113 @@ and lcode = Var of string | App of code * code | Fst of code | Snd of code | Cor
 
 (* {1 Elaborator} *)
 
-module StrMap = Map.Make (String)
-type resolver = tm StrMap.t
-
 exception ElabError
 
 module R = Refiner
 
-let rec elab_chk_code res : code -> R.chk_rule =
-  function
-  | R rcode ->
-    elab_chk_rcode res rcode
-  | L lcode ->
-    elab_chk_lcode res lcode
+module Elaborator = 
+struct
+  module StrMap = Map.Make (String)
+  type resolver = tm StrMap.t
 
-and elab_syn_code res : code -> R.syn_rule = 
-  function
-  | L lcode ->
-    elab_syn_lcode res lcode
-  | R _ -> 
-    raise ElabError
+  module M = Monad.Reader (struct type local = resolver end)
+  include M
 
-and elab_chk_rcode res : rcode -> R.chk_rule = 
-  function
-  | Tt -> R.tt
-  | Ff -> R.ff
-  | Lam (x, codex) -> 
-    R.lam @@ fun var ->
-    let resx = StrMap.add x var res in
-    elab_chk_code resx codex
-  | Pair (code0, code1) ->
-    let chk0 = elab_chk_code res code0 in
-    let chk1 = elab_chk_code res code1 in
-    R.pair chk0 chk1
-  | _ -> 
-    raise ElabError
+  open Monad.Notation (M)
 
-and elab_chk_lcode res (lcode : lcode) : R.chk_rule = 
-  R.with_tp @@ fun gtp ->
-  match tp_head gtp with
-  | `Pi ->
-    R.lam @@ fun var ->
-    elab_chk_lcode res @@ App (L lcode, L (Core var))
-  | `Sg ->
-    let chk0 = elab_chk_lcode res @@ Fst (L lcode) in
-    let chk1 = elab_chk_lcode res @@ Snd (L lcode) in
-    R.pair chk0 chk1
-  | `Bool ->
-    R.conv @@ elab_syn_lcode res lcode
+  let commute rule f : _ m =
+    M.reader @@ fun res ->
+    rule @@ fun x ->
+    M.run res @@ f x
 
-and elab_syn_lcode res : lcode -> R.syn_rule = 
-  function
-  | Var x ->
-    R.core @@ StrMap.find x res 
-  | App (fn, arg) -> 
-    R.app (elab_syn_code res fn) (elab_chk_code res arg)
-  | Fst code ->
-    R.fst @@ elab_syn_code res code
-  | Snd code ->
-    R.snd @@ elab_syn_code res code
-  | Core tm ->
-    R.core tm 
+  let add_var x var = 
+    locally @@ StrMap.add x var
 
-and elab_tp_code res : code -> R.tp_rule =
-  function
-  | R rcode -> 
-    elab_tp_rcode res rcode
-  | _ ->
-    raise ElabError
+  let rec elab_chk_code : code -> R.chk_rule m =
+    function
+    | R rcode ->
+      elab_chk_rcode rcode
+    | L lcode ->
+      elab_chk_lcode lcode
 
-and elab_tp_rcode res : rcode -> R.tp_rule = 
-  function
-  | Bool ->
-    R.bool
-  | Pi (x, code0, code1) ->
-    let tp_base = elab_tp_code res code0 in
-    R.pi tp_base @@ fun var ->
-    let resx = StrMap.add x var res in
-    elab_tp_code resx code1
-  | Sg (x, code0, code1) ->
-    let tp_base = elab_tp_code res code0 in
-    R.sg tp_base @@ fun var ->
-    let resx = StrMap.add x var res in
-    elab_tp_code resx code1
-  | _ ->
-    raise ElabError
+  and elab_syn_code : code -> R.syn_rule m = 
+    function
+    | L lcode ->
+      elab_syn_lcode lcode
+    | R _ -> 
+      raise ElabError
+
+  and elab_chk_rcode : rcode -> R.chk_rule m = 
+    function
+    | Tt -> ret R.tt
+    | Ff -> ret R.ff
+    | Lam (x, codex) -> 
+      commute R.lam @@ fun var ->
+      add_var x var @@
+      elab_chk_code codex 
+    | Pair (code0, code1) ->
+      let+ chk0 = elab_chk_code code0
+      and+ chk1 = elab_chk_code code1 in
+      R.pair chk0 chk1
+    | _ -> 
+      raise ElabError
+
+  and elab_chk_lcode (lcode : lcode) : R.chk_rule m = 
+    commute R.with_tp @@ fun gtp ->
+    match tp_head gtp with
+    | `Pi ->
+      commute R.lam @@ fun var ->
+      elab_chk_lcode @@ App (L lcode, L (Core var))
+    | `Sg ->
+      let+ chk0 = elab_chk_lcode @@ Fst (L lcode)
+      and+ chk1 = elab_chk_lcode @@ Snd (L lcode) in
+      R.pair chk0 chk1
+    | `Bool ->
+      let+ syn = elab_syn_lcode lcode in
+      R.conv syn
+
+  and elab_syn_lcode : lcode -> R.syn_rule m = 
+    function
+    | Var x ->
+      let+ res = read in
+      R.core @@ StrMap.find x res
+    | App (fn, arg) -> 
+      let+ syn = elab_syn_code fn
+      and+ chk = elab_chk_code arg in
+      R.app syn chk
+    | Fst code ->
+      let+ syn = elab_syn_code code in
+      R.fst syn
+    | Snd code ->
+      let+ syn = elab_syn_code code in
+      R.snd syn
+    | Core tm ->
+      ret @@ R.core tm 
+
+  and elab_tp_code : code -> R.tp_rule m =
+    function
+    | R rcode -> 
+      elab_tp_rcode rcode
+    | _ ->
+      raise ElabError
+
+  and elab_tp_rcode : rcode -> R.tp_rule m = 
+    function
+    | Bool ->
+      ret R.bool
+    | Pi (x, code0, code1) ->
+      let* tp_base = elab_tp_code code0 in
+      commute (R.pi tp_base) @@ fun var ->
+      add_var x var @@ 
+      elab_tp_code code1
+    | Sg (x, code0, code1) ->
+      let* tp_base = elab_tp_code code0 in
+      commute (R.sg tp_base) @@ fun var ->
+      add_var x var @@
+      elab_tp_code code1
+    | _ ->
+      raise ElabError
+end
 
 module S = Syntax
 

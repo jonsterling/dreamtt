@@ -24,29 +24,32 @@ and lcode = Var of string | App of code * code | Fst of code | Snd of code | Cor
 
 (** {1 Elaboration} *)
 
-type resolver
-
 module R = Refiner
 
+module Elaborator : 
+sig
+  type resolver
+  include Monad.Reader with type local = resolver
 
-(** The main entry-point: check a piece of code against a type. *)
-val elab_chk_code : resolver -> code -> R.chk_rule
+  (** The main entry-point: check a piece of code against a type. *)
+  val elab_chk_code : code -> R.chk_rule m
 
-(** Checking introduction forms against their types. *)
-val elab_chk_rcode : resolver -> rcode -> R.chk_rule
+  (** Checking introduction forms against their types. *)
+  val elab_chk_rcode : rcode -> R.chk_rule m
 
-(** Rather than transitioning immediately to syn_rulethesis when we hit an [lcode],
-    we perform type-directed eta expansion. This is the main ingredient to
-    enable smooth elaboration of subtypes, including the "retyping principles"
-    familiar from ML modules. *)
-val elab_chk_lcode : resolver -> lcode -> R.chk_rule
+  (** Rather than transitioning immediately to syn_rulethesis when we hit an [lcode],
+      we perform type-directed eta expansion. This is the main ingredient to
+      enable smooth elaboration of subtypes, including the "retyping principles"
+      familiar from ML modules. *)
+  val elab_chk_lcode : lcode -> R.chk_rule m
 
-(** Elaborating an elimination form. *)
-val elab_syn_lcode : resolver -> lcode -> R.syn_rule
+  (** Elaborating an elimination form. *)
+  val elab_syn_lcode : lcode -> R.syn_rule m
 
-(** Elaborate a type *)
-val elab_tp_code : resolver -> code -> R.tp_rule
-val elab_tp_rcode : resolver -> rcode -> R.tp_rule
+  (** Elaborate a type *)
+  val elab_tp_code : code -> R.tp_rule m
+  val elab_tp_rcode : rcode -> R.tp_rule m
+end
 
 
 (** {1 Distillation} *)
