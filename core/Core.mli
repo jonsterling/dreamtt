@@ -13,7 +13,7 @@ module Local = Local
 
 (** {2 Proof abstraction boundary} *)
 
-(** We wrap the syn_ruletax in an abstraction boundary à la LCF. *)
+(** We wrap the syntax in an abstraction boundary à la LCF. *)
 
 module Proof : 
 sig
