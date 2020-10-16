@@ -1,3 +1,5 @@
+(** Representation of contexts and variables. *)
+
 (** An abstract type representing environments that are extended on the right. *)
 type 'a t
 

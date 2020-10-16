@@ -1,3 +1,6 @@
+(** The core langauge syntax representation *)
+
+
 (** {1 Core language representations } 
 
     The core language syntax is split into two representations, after Coquand:

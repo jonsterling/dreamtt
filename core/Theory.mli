@@ -1,8 +1,8 @@
-open Syntax
+(** The equational theory of types *)
 
 exception UnequalTypes
 
-val tp_of_gtm : gtm -> gtp
-val tp_of_gneu : gneu -> gtp
+val tp_of_gtm : Syntax.gtm -> Syntax.gtp
+val tp_of_gneu : Syntax.gneu -> Syntax.gtp
 
-val equate_gtp : gtp -> gtp -> unit Local.m
+val equate_gtp : Syntax.gtp -> Syntax.gtp -> unit Local.m
