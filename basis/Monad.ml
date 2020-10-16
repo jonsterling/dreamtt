@@ -43,9 +43,9 @@ struct
   let (@<<) f m = m |>> f
   let (<&>) = (and+)
 end
-  
 
-module Identity : S with type 'a m = 'a = 
+
+module Identity : S with type 'a m = 'a =
 struct
   type 'a m = 'a
   let ret a = a

@@ -1,11 +1,11 @@
-module type Ops = 
+module type Ops =
 sig
   type 'a m
   val throw : exn -> 'a m
   val catch : 'a m -> (('a, exn) Result.t -> 'b m) -> 'b m
 end
 
-module type T = 
+module type T =
 sig
   include Monad.Trans
   include Ops with type 'a m := 'a m
@@ -20,27 +20,27 @@ struct
   type 'a n = 'a M.m
   type 'a m = ('a, exn) Result.t n
 
-  let ret : 'a -> 'a m = 
+  let ret : 'a -> 'a m =
     fun a ->
     M.ret @@ Ok a
 
-  let bind (m : 'a m) (k : 'a -> 'b m) : 'b m = 
+  let bind (m : 'a m) (k : 'a -> 'b m) : 'b m =
     M.bind m @@ function
-    | Ok a -> 
+    | Ok a ->
       k a
-    | Error e -> 
+    | Error e ->
       M.ret @@ Error e
 
   let catch (m : 'a m) (k : ('a, exn) Result.t -> 'b m) : 'b m =
     M.bind m k
 
-  let run (m : 'a m) (k : ('a, exn) Result.t -> 'b n) : 'b n = 
+  let run (m : 'a m) (k : ('a, exn) Result.t -> 'b n) : 'b n =
     M.bind m k
 
   let throw e =
     M.ret @@ Error e
 
-  let lift n = 
+  let lift n =
     M.bind n @@ fun x ->
     M.ret @@ Ok x
 end

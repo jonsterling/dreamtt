@@ -2,7 +2,7 @@
 module type Ops =
 sig
   type 'a m
-  type local 
+  type local
 
   val read : local m
   val locally : (local -> local) -> 'a m -> 'a m
@@ -33,7 +33,7 @@ struct
 
   let ret a _ = M.ret a
 
-  let bind (m : 'a m) (k : 'a -> 'b m) = 
+  let bind (m : 'a m) (k : 'a -> 'b m) =
     fun l ->
     M.bind (m l) @@ fun x ->
     k x l

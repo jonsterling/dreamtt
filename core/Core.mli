@@ -1,4 +1,4 @@
-(** {1 Core language} 
+(** {1 Core language}
 
     The representation of the core language is {i not} exposed. Instead, an
     abstract type is provided of both core language types and core language
@@ -15,7 +15,7 @@ module Local = Local
 
 (** We wrap the syntax in an abstraction boundary à la LCF. *)
 
-module Proof : 
+module Proof :
 sig
   type 'a t
   val out : 'a t -> 'a
@@ -37,16 +37,16 @@ val tp_head : tp -> tp_head
 
 (** {1 Constructing well-typed terms} *)
 
-(** The refiner is the only way to construct terms. Any term constructed by the refiner is 
+(** The refiner is the only way to construct terms. Any term constructed by the refiner is
     guaranteed to be well-typed, in the tradition of LCF. *)
 module Refiner : sig
-  (** {1 Rule types} 
-  
+  (** {1 Rule types}
+
       The refiner follows a version of the bidirectional typing discipline,
       dividing proofs into {!chk_rule} and {!syn_rule}. The purpose of the bidirectional
       division of labor is to enable many steps of refinement that would
       otherwise induce dozens of conversion checks to be collated in such a way
-      that only one conversion check is required. 
+      that only one conversion check is required.
 
       A related side-effect is that the refinement scripts contain very few
       annotations, drawing annotations inward from the goal and outward from

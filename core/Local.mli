@@ -2,7 +2,7 @@
 
 open Basis
 
-module type S = 
+module type S =
 sig
   type sort
   type elt
@@ -27,7 +27,7 @@ sig
   val run_exn : elt Env.t -> 'a m -> 'a
 end
 
-module type Elt = 
+module type Elt =
 sig
   type sort
   type elt

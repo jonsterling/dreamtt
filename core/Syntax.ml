@@ -1,12 +1,12 @@
 (** The core language syntax representation *)
 
 
-(** {1 Core language representations } 
+(** {1 Core language representations }
 
     The core language syntax is split into two representations, after Coquand:
     a local form that is sensitive to the context (using De Bruijn indices),
     and a global form that is insensitive to the context (using De Bruijn
-    levels). 
+    levels).
 
 
     The "local" syntax corresponds to ordinary syntax, and the "global" syntax
@@ -24,7 +24,7 @@ type ltp =
   | LSg of ltp * ltp
   | LBool
 
-and gtp = 
+and gtp =
   | GPi of gfam
   | GSg of gfam
   | GBool
@@ -33,7 +33,7 @@ and gfam = gtp * ltp * env
 
 (** {2 Representation of terms} *)
 
-and ltm = 
+and ltm =
   | LVar of Env.ix
   | LTt | LFf
 
@@ -50,12 +50,12 @@ and gtm =
   | GPair of gfam * gtm * gtm
   | GEta of gneu
 
-and gneu = 
+and gneu =
   | GVar of Env.lvl * gtp
   | GSnoc of gneu * gfrm
 
 and gfrm =
-  | GFst 
+  | GFst
   | GSnd
   | GApp of gtm
 

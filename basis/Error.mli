@@ -1,11 +1,11 @@
-module type Ops = 
+module type Ops =
 sig
   type 'a m
   val throw : exn -> 'a m
   val catch : 'a m -> (('a, exn) Result.t -> 'b m) -> 'b m
 end
 
-module type T = 
+module type T =
 sig
   include Monad.Trans
   include Ops with type 'a m := 'a m

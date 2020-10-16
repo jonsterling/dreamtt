@@ -1,7 +1,7 @@
 open Basis
 open Syntax
 
-module type S = 
+module type S =
 sig
   type sort
   type elt
@@ -26,7 +26,7 @@ sig
   val run_exn : elt Env.t -> 'a m -> 'a
 end
 
-module type Elt = 
+module type Elt =
 sig
   type sort
   type elt
@@ -45,14 +45,14 @@ struct
 
   let throw e = lift @@ Error.M.throw e
 
-  let scope (sort : sort) (k : elt -> 'a m) : 'a m = 
+  let scope (sort : sort) (k : elt -> 'a m) : 'a m =
     reader @@ fun env ->
-    let x = var sort @@ Env.fresh env in 
+    let x = var sort @@ Env.fresh env in
     run (Env.append env x) @@ k x
 
   let get_env = read
 
-  let run_exn env m = 
+  let run_exn env m =
     Error.M.run (run env m) @@ function
     | Result.Ok a -> a
     | Result.Error e -> raise e
@@ -63,7 +63,7 @@ module TmElt =
 struct
   type sort = gtp
   type elt = gtm
-  let var gtp lvl = 
+  let var gtp lvl =
     GEta (GVar (lvl, gtp))
 end
 
