@@ -1,9 +1,7 @@
 module type T =
 sig
   type local
-  include Monad.S
-
-  type 'a n
+  include Monad.Trans
 
   val read : local m
   val locally : (local -> local) -> 'a m -> 'a m
@@ -19,6 +17,8 @@ struct
   include L
   type 'a n = 'a M.m
   type 'a m = local -> 'a n
+
+  let lift m _ = m
 
   let ret a _ = M.ret a
 

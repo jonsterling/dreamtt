@@ -5,6 +5,13 @@ sig
   val bind : 'a m -> ('a -> 'b m) -> 'b m
 end
 
+module type Trans =
+sig
+  type 'a n
+  include S
+  val lift : 'a n -> 'a m
+end
+
 module type Notation =
 sig
   type 'a m
