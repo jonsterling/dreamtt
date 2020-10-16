@@ -1,7 +1,18 @@
+(** The operations of a reader monad *)
+module type Ops =
+sig
+  type 'a m
+  type local 
+
+  val read : local m
+  val locally : (local -> local) -> 'a m -> 'a m
+end
+
+(** The reader monad transformer interface. *)
 module type T =
 sig
-  type local
   include Monad.Trans
+  include Ops with type 'a m := 'a m
 
   val read : local m
   val locally : (local -> local) -> 'a m -> 'a m

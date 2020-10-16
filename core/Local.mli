@@ -23,7 +23,7 @@ sig
 
   (** {1 Runners} *)
 
-  val run : elt Env.t -> 'a m -> ('a, exn) Result.t
+  val run : elt Env.t -> 'a m -> 'a Error.M.m
   val run_exn : elt Env.t -> 'a m -> 'a
 end
 

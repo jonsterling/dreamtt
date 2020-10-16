@@ -22,7 +22,7 @@ sig
 
   (** {1 Runners} *)
 
-  val run : elt Env.t -> 'a m -> ('a, exn) Result.t
+  val run : elt Env.t -> 'a m -> 'a Error.M.m
   val run_exn : elt Env.t -> 'a m -> 'a
 end
 
@@ -40,34 +40,22 @@ struct
 
   type env = elt Env.t
 
-  type 'a m = env -> ('a, exn) Result.t
+  module M = Reader.MakeT (struct type local = env end) (Error.M)
+  include M
 
-  let throw e _ = 
-    Error e
-
-  let run env m = 
-    m env
-
-  let run_exn  env m : 'a = 
-    match m env with
-    | Ok a -> a
-    | Error e -> raise e
-
-  let ret a = 
-    fun _ -> Ok a
-
-  let bind (m : 'a m) (f : 'a -> 'b m) : 'b m = 
-    fun env ->
-    Result.bind (m env) @@ fun x ->
-    f x env
+  let throw e = lift @@ Error.M.throw e
 
   let scope (sort : sort) (k : elt -> 'a m) : 'a m = 
-    fun env ->
+    reader @@ fun env ->
     let x = var sort @@ Env.fresh env in 
-    k x @@ Env.append env x
+    run (Env.append env x) @@ k x
 
-  let get_env env = 
-    Ok env
+  let get_env = read
+
+  let run_exn env m = 
+    Error.M.run (run env m) @@ function
+    | Result.Ok a -> a
+    | Result.Error e -> raise e
 end
 
 
