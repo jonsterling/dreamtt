@@ -29,7 +29,7 @@ module R = Refiner
 module Elaborator : 
 sig
   type resolver
-  include Monad.Reader with type local = resolver
+  include Reader.S with type local = resolver
 
   (** The main entry-point: check a piece of code against a type. *)
   val elab_chk_code : code -> R.chk_rule m

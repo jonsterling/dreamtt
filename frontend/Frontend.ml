@@ -18,7 +18,7 @@ struct
   module StrMap = Map.Make (String)
   type resolver = tm StrMap.t
 
-  module M = Monad.Reader (struct type local = resolver end)
+  module M = Reader.Make (struct type local = resolver end)
   include M
 
   open Monad.Notation (M)
