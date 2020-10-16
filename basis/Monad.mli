@@ -5,19 +5,32 @@ sig
   val bind : 'a m -> ('a -> 'b m) -> 'b m
 end
 
-module type Reader =
+module type ReaderT =
 sig
   type local
-  include S
+  include S 
+
+  type 'a n
 
   val read : local m
   val locally : (local -> local) -> 'a m -> 'a m
 
-  val reader : (local -> 'a) -> 'a m
-  val run : local -> 'a m -> 'a
+  val reader : (local -> 'a n) -> 'a m
+  val run : local -> 'a m -> 'a n
 end
 
-module Reader (L : sig type local end) : Reader with type local = L.local
+
+module type Reader = ReaderT with type 'a n = 'a
+
+module ReaderT (L : sig type local end) (M : S) 
+  : ReaderT 
+    with type 'a n = 'a M.m 
+     and type local = L.local
+
+module Reader (L : sig type local end) 
+  : Reader 
+    with type local = L.local
+
 
 module type Notation =
 sig
