@@ -96,9 +96,11 @@ struct
       let x = Env.proj env ix in
       L (Var x)
 
-    | LTt -> ret @@ R Tt
+    | LTt -> 
+      ret @@ R Tt
 
-    | LFf -> ret @@ R Ff
+    | LFf -> 
+      ret @@ R Ff
 
     | LFst tm ->
       let+ code = distill_ltm tm in
