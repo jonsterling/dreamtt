@@ -1,3 +1,5 @@
+(** A convenient monad for working with a local environment. *)
+
 open Basis
 
 module type S = 
