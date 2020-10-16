@@ -1,17 +1,23 @@
 open Basis
 open Syntax
 
-module type S =
+
+module type Ops =
+sig
+  type 'a m
+  type env
+
+  include Reader.Ops with type 'a m := 'a m and type local := env
+end
+
+module type T =
 sig
   type sort
   type elt
+  type env = elt Env.t
 
-  include Monad.S
-
-  (** {1 Operations} *)
-
-  val get_env : elt Env.t m
-  val throw : exn -> 'a m
+  include Monad.Trans
+  include Ops with type 'a m := 'a m and type env := env
 
   (** {1 Control operators} *)
 
@@ -22,8 +28,7 @@ sig
 
   (** {1 Runners} *)
 
-  val run : elt Env.t -> 'a m -> 'a Error.M.m
-  val run_exn : elt Env.t -> 'a m -> 'a
+  val run : elt Env.t -> 'a m -> 'a n
 end
 
 module type Elt =
@@ -33,6 +38,13 @@ sig
 
   val var : sort -> Env.lvl -> elt
 end
+
+module type S =
+sig
+  include T with type 'a n = 'a Error.M.m
+  val throw : exn -> 'a m
+end
+
 
 module Make (E : Elt) =
 struct
@@ -49,13 +61,6 @@ struct
     reader @@ fun env ->
     let x = var sort @@ Env.fresh env in
     run (Env.append env x) @@ k x
-
-  let get_env = read
-
-  let run_exn env m =
-    Error.M.run (run env m) @@ function
-    | Result.Ok a -> a
-    | Result.Error e -> raise e
 end
 
 

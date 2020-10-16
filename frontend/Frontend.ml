@@ -138,7 +138,7 @@ struct
   let rec distill_ltm : S.ltm -> code m =
     function
     | LVar ix ->
-      let+ env = get_env in
+      let+ env = read in
       let x = Env.proj env ix in
       L (Var x)
 

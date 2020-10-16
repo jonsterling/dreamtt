@@ -11,6 +11,7 @@ sig
   include Ops with type 'a m := 'a m
 
   val run : 'a m -> (('a, exn) Result.t -> 'b n) -> 'b n
+  val run_exn : 'a m -> 'a n
 end
 
 module type S = T with type 'a n = 'a
@@ -36,6 +37,11 @@ struct
 
   let run (m : 'a m) (k : ('a, exn) Result.t -> 'b n) : 'b n =
     M.bind m k
+
+  let run_exn m =
+    M.bind m @@ function
+    | Ok a -> M.ret a
+    | Error e -> raise e
 
   let throw e =
     M.ret @@ Error e

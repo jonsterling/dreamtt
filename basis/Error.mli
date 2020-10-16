@@ -11,6 +11,7 @@ sig
   include Ops with type 'a m := 'a m
 
   val run : 'a m -> (('a, exn) Result.t -> 'b n) -> 'b n
+  val run_exn : 'a m -> 'a n
 end
 
 module type S = T with type 'a n = 'a

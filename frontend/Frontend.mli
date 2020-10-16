@@ -1,7 +1,7 @@
 open Basis
 open Core
 
-(** {1 The source language} 
+(** {1 The source language}
 
     We begin by defining a naive source language.
 *)
@@ -26,7 +26,7 @@ and lcode = Var of string | App of code * code | Fst of code | Snd of code | Cor
 
 module R = Refiner
 
-module Elaborator : 
+module Elaborator :
 sig
   type resolver
   include Reader.S with type local = resolver
@@ -56,7 +56,7 @@ end
 
 (** The distiller takes a core-language term and turns it into a source language code. *)
 module Distiller : sig
-  include Monad.S 
-  val run_exn : string Env.t -> 'a m -> 'a
+  include Monad.S
+  val run : string Env.t -> 'a m -> 'a Error.M.m
   val distill_ltm : Syntax.ltm -> code m
 end
