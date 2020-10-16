@@ -16,21 +16,21 @@ exception ElabError
 
 module R = Refiner
 
-let rec chk_code res : code -> R.chk =
+let rec chk_code res : code -> R.chk_rule =
   function
   | R rcode ->
     chk_rcode res rcode
   | L lcode ->
     chk_lcode res lcode
 
-and syn_code res : code -> R.syn = 
+and syn_code res : code -> R.syn_rule = 
   function
   | L lcode ->
     syn_lcode res lcode
   | R _ -> 
     raise ElabError
 
-and chk_rcode res : rcode -> R.chk  = 
+and chk_rcode res : rcode -> R.chk_rule = 
   function
   | Tt -> R.tt
   | Ff -> R.ff
@@ -43,7 +43,7 @@ and chk_rcode res : rcode -> R.chk  =
     let chk1 = chk_code res code1 in
     R.pair chk0 chk1
 
-and chk_lcode res (lcode : lcode) : R.chk = 
+and chk_lcode res (lcode : lcode) : R.chk_rule = 
   R.with_tp @@ fun gtp ->
   match tp_head gtp with
   | `Pi ->
@@ -56,7 +56,7 @@ and chk_lcode res (lcode : lcode) : R.chk =
   | `Bool ->
     R.conv @@ syn_lcode res lcode
 
-and syn_lcode res : lcode -> R.syn = 
+and syn_lcode res : lcode -> R.syn_rule = 
   function
   | Var x ->
     R.core @@ StrMap.find x res 

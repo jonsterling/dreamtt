@@ -9,8 +9,8 @@ open Core
 (** The central idea to the elaboration algorithm is to distinguish
     introduction forms from elimination forms; unlike some classic
     bidirectional algorithms, this distinction does not line up exactly with {i
-    checking} vs. {i synthesis}, but it interacts with it in a non-trivial way:
-    we only synthesize elimination forms at positive types. *)
+    checking} vs. {i syn_rulethesis}, but it interacts with it in a non-trivial way:
+    we only syn_rulethesize elimination forms at positive types. *)
 type code = R of rcode | L of lcode
 
 (** [rcode] is a type of introduction forms *)
@@ -30,19 +30,19 @@ module R = Refiner
 
 
 (** The main entry-point: check a piece of code against a type. *)
-val chk_code : resolver -> code -> R.chk
+val chk_code : resolver -> code -> R.chk_rule
 
 (** Checking introduction forms against their types. *)
-val chk_rcode : resolver -> rcode -> R.chk
+val chk_rcode : resolver -> rcode -> R.chk_rule
 
-(** Rather than transitioning immediately to synthesis when we hit an [lcode],
+(** Rather than transitioning immediately to syn_rulethesis when we hit an [lcode],
     we perform type-directed eta expansion. This is the main ingredient to
     enable smooth elaboration of subtypes, including the "retyping principles"
     familiar from ML modules. *)
-val chk_lcode : resolver -> lcode -> R.chk
+val chk_lcode : resolver -> lcode -> R.chk_rule
 
 (** Elaborating an elimination form. *)
-val syn_lcode : resolver -> lcode -> R.syn
+val syn_lcode : resolver -> lcode -> R.syn_rule
 
 
 (** {1 Distillation} *)
