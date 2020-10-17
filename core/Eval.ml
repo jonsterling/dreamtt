@@ -3,61 +3,19 @@ open Syntax
 
 exception Impossible
 
-type 'a instr =
-  | Ret : 'a -> 'a instr
-  | Eval : env * ltm -> gtm instr
-  | EvalTp : env * ltp -> gtp instr
-  | Bind : 'a instr * ('a -> 'b instr) -> 'b instr
-  | Throw : exn -> 'a instr
-
-module M =
-struct
-  type 'a m = 'a instr
-  let ret a = Ret a
-  let bind m k = Bind (m, k)
-
-  let eval env ltm = Eval (env, ltm)
-  let eval_tp env ltp = EvalTp (env, ltp)
-  let throw exn = Throw exn
-end
-
+module M = Error.M
+open Monad.Notation (M)
 include M
 
-open Monad.Notation (M)
 
-let gapp gtm0 gtm1 : gtm m =
-  match gtm0 with
-  | GLam (_, (ltm, tm_env)) -> 
-    let tm_env = Env.append tm_env gtm1 in
-    eval tm_env ltm
-  | GEta gneu ->
-    ret @@ GEta (GSnoc (gneu, GApp gtm1))
-  | _ ->
-    throw Impossible
+let run_exn = M.run_exn
 
-let gfst gtm =
-  match gtm with
-  | GPair(_, gtm0, _) -> 
-    ret gtm0
-  | GEta gneu ->
-    ret @@ GEta (GSnoc (gneu, GFst))
-  | _ ->
-    throw Impossible
 
-let gsnd gtm =
-  match gtm with
-  | GPair(_, _, gtm1) -> 
-    ret gtm1
-  | GEta gneu ->
-    ret @@ GEta (GSnoc (gneu, GSnd))
-  | _ ->
-    throw Impossible
-
-let eval_step env : ltm -> gtm m =
-  function 
+let rec eval env : ltm -> gtm m =
+  function
   | LLam (gfam, ltm) ->
     ret @@ GLam (gfam, (ltm, env))
-  | LVar ix -> 
+  | LVar ix ->
     ret @@ Env.proj env ix
   | LTt -> ret GTt
   | LFf -> ret GFf
@@ -76,7 +34,37 @@ let eval_step env : ltm -> gtm m =
     let* gtm = eval env ltm in
     gsnd gtm
 
-let eval_tp_step env : ltp -> gtp instr = 
+
+and gapp gtm0 gtm1 : gtm m =
+  match gtm0 with
+  | GLam (_, (ltm, tm_env)) ->
+    let tm_env = Env.append tm_env gtm1 in
+    eval tm_env ltm
+  | GEta gneu ->
+    ret @@ GEta (GSnoc (gneu, GApp gtm1))
+  | _ ->
+    throw Impossible
+
+and gfst gtm =
+  match gtm with
+  | GPair(_, gtm0, _) ->
+    ret gtm0
+  | GEta gneu ->
+    ret @@ GEta (GSnoc (gneu, GFst))
+  | _ ->
+    throw Impossible
+
+and gsnd gtm =
+  match gtm with
+  | GPair(_, _, gtm1) ->
+    ret gtm1
+  | GEta gneu ->
+    ret @@ GEta (GSnoc (gneu, GSnd))
+  | _ ->
+    throw Impossible
+
+
+let rec eval_tp env : ltp -> gtp m =
   function
   | LPi (lbase, lfam) ->
     let* gbase = eval_tp env lbase in
@@ -87,17 +75,4 @@ let eval_tp_step env : ltp -> gtp instr =
   | LBool ->
     ret GBool
 
-let rec run_exn : type a. a m -> a =
-  fun instr ->
-  match instr with
-  | Ret a -> a
-  | Bind (m, k) -> 
-    let x = run_exn m in
-    run_exn @@ k x
-  | Eval (env, ltm) -> 
-    run_exn @@ eval_step env ltm
-  | EvalTp (env, ltp) -> 
-    run_exn @@ eval_tp_step env ltp
-  | Throw exn ->
-    raise exn
 
