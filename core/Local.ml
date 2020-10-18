@@ -1,33 +1,23 @@
-open Basis
 open Syntax
 
+open Basis
 
 module type Ops =
 sig
   type 'a m
-  type env
+  type sort
+  type elt
 
-  include Reader.Ops with type 'a m := 'a m and type local := env
+  include Reader.Ops with type 'a m := 'a m and type local := elt Env.t
+  val scope : sort -> (elt -> 'a m) -> 'a m
 end
 
 module type T =
 sig
-  type sort
-  type elt
-  type env = elt Env.t
-
   include Monad.Trans
-  include Ops with type 'a m := 'a m and type env := env
+  include Ops with type 'a m := 'a m
 
-  (** {1 Control operators} *)
-
-  (** Extend the ambient context with a variable of a given sort; the variable is
-      passed to the continuation. *)
-  val scope : sort -> (elt -> 'a m) -> 'a m
-
-
-  (** {1 Runners} *)
-
+  type env = elt Env.t
   val run : elt Env.t -> 'a m -> 'a n
 end
 
@@ -39,11 +29,19 @@ sig
   val var : sort -> Env.lvl -> elt
 end
 
+
 module type S =
 sig
   include T with type 'a n = 'a Error.M.m
   val throw : exn -> 'a m
 end
+
+
+
+
+
+
+
 
 
 module Make (E : Elt) =

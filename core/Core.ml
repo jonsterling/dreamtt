@@ -1,10 +1,9 @@
-include Theory
-
 module Env = Env
 module Theory = Theory
 module Syntax = Syntax
 module Local = Local
-include Syntax
+
+open Syntax
 
 module Proof =
 struct
@@ -15,6 +14,16 @@ end
 type tp = gtp Proof.t
 type tm = gtm Proof.t
 
-let tp_of_tm = Theory.tp_of_gtm
+module type MonadCore =
+sig
+  include Theory.MonadTheory
+  val run_exn : Syntax.gtm Env.t -> 'a m -> 'a
+end
 
-module Refiner = Refiner
+module Make (M : MonadCore) =
+struct
+  include Syntax
+  include Theory.Make (M)
+  let tp_of_tm = tp_of_gtm
+  module Refiner = Refiner.Make (M)
+end

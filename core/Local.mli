@@ -5,26 +5,25 @@ open Basis
 module type Ops =
 sig
   type 'a m
-  type env
-
-  include Reader.Ops with type 'a m := 'a m and type local := env
-end
-
-module type T =
-sig
   type sort
   type elt
-  type env = elt Env.t
 
-  include Monad.Trans
-  include Ops with type 'a m := 'a m and type env := env
+  include Reader.Ops with type 'a m := 'a m and type local := elt Env.t
+
 
   (** {1 Control operators} *)
 
   (** Extend the ambient context with a variable of a given sort; the variable is
       passed to the continuation. *)
   val scope : sort -> (elt -> 'a m) -> 'a m
+end
 
+module type T =
+sig
+  include Monad.Trans
+  include Ops with type 'a m := 'a m
+
+  type env = elt Env.t
 
   (** {1 Runners} *)
 

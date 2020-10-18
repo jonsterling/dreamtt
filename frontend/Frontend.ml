@@ -11,11 +11,63 @@ and lcode = Var of string | App of code * code | Fst of code | Snd of code | Cor
 
 exception ElabError
 
+module StrMap = Map.Make (String)
+type resolver = tm StrMap.t
+
+module type MonadElab = sig
+  include Theory.MonadTheory
+  include Error.Ops with type 'a m := 'a m
+
+  val resolver : resolver m
+end
+
+module ElabMonad : MonadElab =
+struct
+  type elt = Syntax.gtm
+  type sort = Syntax.gtp
+
+  module Local = Local.M
+  module Error = Error.MakeT (Local)
+  module Reader = Reader.MakeT (struct type local = resolver end) (Error)
+
+  type 'a m = 'a Reader.m
+  let ret = Reader.ret
+  let bind = Reader.bind
+
+  let catch = failwith ""
+
+  let throw exn =
+    Reader.lift @@ Error.throw exn
+
+  let lower : Reader.local -> 'a m -> ('a, exn) Result.t Local.m =
+    fun res m ->
+    Error.run (Reader.run res m) Local.ret
+
+  let locally f (m : 'a m) =
+    bind Reader.read @@ fun res ->
+    let m = Reader.lift @@ Error.lift @@ Local.locally f @@ lower res m in
+    bind m @@ function
+    | Ok a -> ret a
+    | Error e -> throw e
+
+  let read : Syntax.gtm Env.t m =
+    Reader.lift @@ Error.lift Local.read
+
+  let scope gtp k =
+    bind Reader.read @@ fun res ->
+    let m = Reader.lift @@ Error.lift @@ Local.scope gtp @@ fun x -> lower res @@ k x in
+    bind m @@ function
+    | Ok a -> ret a
+    | Error e -> throw e
+
+  let resolver = Reader.read
+end
+
+(*
 module R = Refiner
 
 module Elaborator =
 struct
-  module StrMap = Map.Make (String)
   type resolver = tm StrMap.t
 
   module M = Reader.Make (struct type local = resolver end)
@@ -171,3 +223,4 @@ struct
       and+ code1 = distill_ltm tm1 in
       R (Pair (code0, code1))
 end
+   *)
