@@ -7,10 +7,10 @@ A minimal implementation of abstract bidirectional elaboration
 """
 maintainer: "Jonathan Sterling <jon@jonmsterling.com>"
 authors: "Jonathan Sterling <jon@jonmsterling.com>"
-license: ""
+license: "Apache-2.0"
 homepage: "http://jonsterling.github.io/dreamtt/"
 bug-reports: "https://github.com/jonsterling/dreamtt/issues"
-dev-repo: "https://github.com/jonsterling/dreamtt"
+dev-repo: "git+https://github.com/jonsterling/dreamtt"
 depends: [
   "dune" {>= "2.0"}
   "ocaml" {>= "4.10.0"}
@@ -20,4 +20,3 @@ depends: [
   "uutf" {>= "1.0.2"}
 ]
 build: [["dune" "build" "-p" name "-j" jobs]]
-
