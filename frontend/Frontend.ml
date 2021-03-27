@@ -171,3 +171,5 @@ struct
       and+ code1 = distill_ltm tm1 in
       R (Pair (code0, code1))
 end
+
+module Driver = Driver

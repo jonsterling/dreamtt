@@ -60,3 +60,6 @@ module Distiller : sig
   val run : string Env.t -> 'a m -> 'a Error.M.m
   val distill_ltm : Syntax.ltm -> code m
 end
+
+module Driver = Driver
+(** Toplevel driver for the proof assistant *)
