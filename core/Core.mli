@@ -98,6 +98,7 @@ module Refiner : sig
   val snd : syn_rule -> syn_rule
 
   (** {2 Dependent record types} *)
+  val rcd : chk_rule Map.Make(String).t -> chk_rule
   val proj : string -> syn_rule -> syn_rule
 
   (** {2 Structural rules} *)

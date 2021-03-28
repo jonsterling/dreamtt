@@ -102,6 +102,35 @@ let pair (chk_rule0 : chk_rule) (chk_rule1 : chk_rule) : chk_rule =
   | _ ->
     M.throw TypeError
 
+let rcd (chk_map : chk_rule StringMap.t) : chk_rule =
+  function
+  | GRcdTp (lbls, gtl) ->
+    let rec loop tmap lbls gtl =
+      match lbls, gtl with
+      | [], GTlNil -> M.ret tmap
+      | lbl :: lbls, GTlCons (gtp, ltl, tlenv) ->
+        begin
+          match StringMap.find_opt lbl chk_map with
+          | Some chk_rule ->
+            let* ltm = chk_rule gtp in
+            let* gtm =
+              let* env = M.read in
+              M.lift_eval @@ Eval.eval env ltm
+            in
+            let* gtl' = M.lift_eval @@ Eval.eval_tele (Env.append tlenv gtm) ltl in
+            let tmap' = StringMap.add lbl ltm tmap in
+            loop tmap' lbls gtl'
+          | None ->
+            M.throw TypeError
+        end
+      | _ ->
+        M.throw TypeError
+    in
+    let* tmap = loop StringMap.empty lbls gtl in
+    M.ret @@ LRcd (lbls, gtl, tmap)
+  | _ ->
+    M.throw TypeError
+
 let app (fn : syn_rule) (arg : chk_rule) : syn_rule =
   let* gtm0 = fn in
   match Theory.tp_of_gtm gtm0 with
@@ -157,6 +186,7 @@ let rec conv_ : gtm -> chk_rule =
       let gtp' = Theory.tp_of_gneu gneu in
       let* () = Theory.equate_gtp gtp gtp' in
       conv_neu_ gneu
+
 
 and conv_neu_ : gneu -> ltm M.m =
   function
