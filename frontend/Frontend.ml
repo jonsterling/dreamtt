@@ -73,6 +73,8 @@ struct
     | `Bool ->
       let+ syn = elab_syn_lcode lcode in
       R.conv syn
+    | `Rcd ->
+      failwith "TODO"
 
   and elab_syn_lcode : lcode -> R.syn_rule m =
     function
@@ -170,4 +172,7 @@ struct
       let+ code0 = distill_ltm tm0
       and+ code1 = distill_ltm tm1 in
       R (Pair (code0, code1))
+
+    | LRcd _ ->
+      failwith "TODO"
 end

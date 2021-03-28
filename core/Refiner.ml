@@ -142,6 +142,8 @@ let rec conv_ : gtm -> chk_rule =
     conv_ gtm gfib
   | GPair (_, gtm0, gtm1) ->
     pair (conv_ gtm0) (conv_ gtm1)
+  | GRcd _ ->
+    failwith "TODO"
   | GEta gneu ->
     fun gtp ->
       let gtp' = Theory.tp_of_gneu gneu in

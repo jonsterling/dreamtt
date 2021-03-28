@@ -28,7 +28,7 @@ val tp_of_tm : tm -> tp
 
 (** {2 Inspecting types} *)
 
-type tp_head = [`Pi | `Sg | `Bool]
+type tp_head = [`Pi | `Sg | `Rcd | `Bool]
 
 (** The head of a type can be exposed in order to guide the elaborator.  It is
     (surprisingly) unnecessary to expose any more data of a type to the

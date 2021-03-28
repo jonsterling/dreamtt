@@ -33,6 +33,16 @@ let rec eval env : ltm -> gtm m =
   | LSnd ltm ->
     let* gtm = eval env ltm in
     gsnd gtm
+  | LRcd (lbls, gtele, lmap) ->
+    let rec loop gmap =
+      function
+      | [] -> M.ret gmap
+      | (lbl, ltm) :: bs ->
+        let* gtm = eval env ltm in
+        loop (StringMap.add lbl gtm gmap) bs
+    in
+    let+ gmap = loop StringMap.empty @@ StringMap.bindings lmap in
+    GRcd (lbls, gtele, gmap)
 
 
 and gapp gtm0 gtm1 : gtm m =
@@ -74,9 +84,11 @@ let rec eval_tp env : ltp -> gtp m =
     GSg (gbase, lfam, env)
   | LBool ->
     ret GBool
+  | LRcdTp (lbls, ltl) ->
+    let+ gtl = eval_tele env ltl in
+    GRcdTp (lbls, gtl)
 
-
-let eval_tele env : ltele -> gtele m =
+and eval_tele env : ltele -> gtele m =
   function
   | LTlNil -> ret GTlNil
   | LTlCons (ltp, ltele) ->

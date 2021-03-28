@@ -12,6 +12,8 @@ let rec tp_of_gtm =
     GPi gfam
   | GPair (gfam, _, _) ->
     GSg gfam
+  | GRcd (lbls, gtele, _) ->
+    GRcdTp (lbls, gtele)
   | GEta gneu ->
     tp_of_gneu gneu
 
@@ -47,11 +49,12 @@ let rec equate_gtp : gtp -> gtp -> unit M.m =
       let* gfib0 = M.lift_eval @@ Eval.eval_tp envx0 lfam0 in
       let* gfib1 = M.lift_eval @@ Eval.eval_tp envx1 lfam1 in
       equate_gtp gfib0 gfib1
+    | GRcdTp (lbls0, gtl0), GRcdTp (lbls1, gtl1) when lbls0 = lbls1 ->
+      equate_gtele gtl0 gtl1
     | _ ->
       M.throw UnequalTypes
 
-
-let rec equate_gtele : gtele -> gtele -> unit M.m =
+and equate_gtele : gtele -> gtele -> unit M.m =
   let open Monad.Notation (M) in
   fun gtl0 gtl1 ->
     match gtl0, gtl1 with

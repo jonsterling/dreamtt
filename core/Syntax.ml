@@ -19,14 +19,19 @@
 
 (** {2 Representation of types} *)
 
+module StringMap = Map.Make (String)
+
+
 type ltp =
   | LPi of ltp * ltp
   | LSg of ltp * ltp
+  | LRcdTp of string list * ltele
   | LBool
 
 and gtp =
   | GPi of gfam
   | GSg of gfam
+  | GRcdTp of string list * gtele
   | GBool
 
 and gfam = gtp * ltp * env
@@ -51,6 +56,7 @@ and ltm =
   | LApp of ltm * ltm
 
   | LPair of gfam * ltm * ltm
+  | LRcd of string list * gtele * ltm StringMap.t
   | LFst of ltm
   | LSnd of ltm
 
@@ -58,6 +64,7 @@ and gtm =
   | GTt | GFf
   | GLam of gfam * (ltm * env)
   | GPair of gfam * gtm * gtm
+  | GRcd of string list * gtele * gtm StringMap.t
   | GEta of gneu
 
 and gneu =
@@ -74,11 +81,11 @@ and env = gtm Env.t
 
 (** {1 Convenience } *)
 
-type tp_head = [`Pi | `Sg | `Bool]
+type tp_head = [`Pi | `Sg | `Rcd | `Bool]
 let tp_head : gtp -> tp_head =
   function
   | GBool -> `Pi
   | GPi _ -> `Bool
   | GSg _ -> `Sg
-
+  | GRcdTp _ -> `Rcd
 
