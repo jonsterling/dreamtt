@@ -60,29 +60,20 @@ let ff : chk_rule =
   | _ -> M.throw TypeError
 
 
+type tele_rule = (string list * ltele) M.m
 
-type tele_rule =
-  | TlRuleNil
-  | TlRuleCons of string * tp_rule * (gtm -> tele_rule)
-
-let rec refine_tele : tele_rule -> (string list * ltele) M.m =
-  function
-  | TlRuleNil -> M.ret ([], LTlNil)
-  | TlRuleCons (lbl, base, fam) ->
-    let* lbase = base in
-    let* gbase =
-      let* env = M.read in
-      M.lift_eval @@ Eval.eval_tp env lbase
-    in
-    M.scope gbase @@ fun var ->
-    let+ lbls, lfam = refine_tele (fam var) in
-    lbl :: lbls, LTlCons (lbase, lfam)
-
-let tl_nil =
-  TlRuleNil
+let tl_nil : tele_rule =
+  M.ret ([], LTlNil)
 
 let tl_cons lbl tp_rule tele_rule =
-  TlRuleCons (lbl, tp_rule, tele_rule)
+  let* lbase = tp_rule in
+  let* gbase =
+    let* env = M.read in
+    M.lift_eval @@ Eval.eval_tp env lbase
+  in
+  M.scope gbase @@ fun var ->
+  let+ lbls, lfam = tele_rule var in
+  lbl :: lbls, LTlCons (lbase, lfam)
 
 let pi (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
   let* lbase = base in
@@ -106,7 +97,7 @@ let sg (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
 
 
 let rcd_tp (tele : tele_rule) : tp_rule =
-  let+ lbls, ltl = refine_tele tele in
+  let+ lbls, ltl = tele in
   LRcdTp (lbls, ltl)
 
 
