@@ -33,6 +33,9 @@ let rec eval env : ltm -> gtm m =
   | LSnd ltm ->
     let* gtm = eval env ltm in
     gsnd gtm
+  | LProj (lbl, ltm) ->
+    let* gtm = eval env ltm in
+    gproj lbl gtm
   | LRcd (lbls, gtele, lmap) ->
     let rec loop gmap =
       function
@@ -57,7 +60,7 @@ and gapp gtm0 gtm1 : gtm m =
 
 and gfst gtm =
   match gtm with
-  | GPair(_, gtm0, _) ->
+  | GPair (_, gtm0, _) ->
     ret gtm0
   | GEta gneu ->
     ret @@ GEta (GSnoc (gneu, GFst))
@@ -66,10 +69,23 @@ and gfst gtm =
 
 and gsnd gtm =
   match gtm with
-  | GPair(_, _, gtm1) ->
+  | GPair (_, _, gtm1) ->
     ret gtm1
   | GEta gneu ->
     ret @@ GEta (GSnoc (gneu, GSnd))
+  | _ ->
+    throw Impossible
+
+and gproj lbl gtm =
+  match gtm with
+  | GRcd (_, _, gmap) ->
+    begin
+      match StringMap.find_opt lbl gmap with
+      | Some gtm -> M.ret gtm
+      | None -> throw Impossible
+    end
+  | GEta gneu ->
+    ret @@ GEta (GSnoc (gneu, GProj lbl))
   | _ ->
     throw Impossible
 

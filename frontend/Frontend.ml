@@ -175,4 +175,7 @@ struct
 
     | LRcd _ ->
       failwith "TODO"
+
+    | LProj _ ->
+      failwith "TODO"
 end

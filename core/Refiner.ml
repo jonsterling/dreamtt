@@ -162,6 +162,7 @@ and conv_neu_ : gneu -> ltm M.m =
     match gfrm with
     | GFst -> M.ret @@ LFst ltm
     | GSnd -> M.ret @@ LSnd ltm
+    | GProj lbl -> M.ret @@ LProj (lbl, ltm)
     | GApp gtm ->
       begin
         match Theory.tp_of_gneu gneu with

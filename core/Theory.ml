@@ -29,8 +29,23 @@ and tp_of_gneu =
     | GSg (_, lfam, env), GSnd ->
       let gfst = GEta (GSnoc (gneu, GFst)) in
       Eval.run_exn @@ Eval.eval_tp (Env.append env gfst) lfam
+    | GRcdTp (lbls, gtl), GProj lbl ->
+      tp_of_rcd_field lbls gtl lbl gneu
     | _ ->
       raise Impossible
+
+and tp_of_rcd_field lbls gtl lbl gneu =
+  match lbls, gtl with
+  | [], GTlNil ->
+    raise Impossible
+  | lbl' :: lbls, GTlCons (gtp, _, _) when lbl = lbl' && not (List.mem lbl lbls) ->
+    gtp
+  | lbl' :: lbls, GTlCons (_, ltl, env) ->
+    let gtm = GEta (GSnoc (gneu, GProj lbl')) in
+    let gtl' = Eval.run_exn @@ Eval.eval_tele (Env.append env gtm) ltl in
+    tp_of_rcd_field lbls gtl' lbl gneu
+  | _ ->
+    raise Impossible
 
 
 module M = RefineM

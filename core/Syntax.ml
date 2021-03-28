@@ -59,6 +59,7 @@ and ltm =
   | LRcd of string list * gtele * ltm StringMap.t
   | LFst of ltm
   | LSnd of ltm
+  | LProj of string * ltm
 
 and gtm =
   | GTt | GFf
@@ -74,6 +75,7 @@ and gneu =
 and gfrm =
   | GFst
   | GSnd
+  | GProj of string
   | GApp of gtm
 
 and env = gtm Env.t
