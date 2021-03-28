@@ -67,12 +67,18 @@ and gsnd gtm =
 let rec eval_tp env : ltp -> gtp m =
   function
   | LPi (lbase, lfam) ->
-    let* gbase = eval_tp env lbase in
-    ret @@ GPi (gbase, lfam, env)
+    let+ gbase = eval_tp env lbase in
+    GPi (gbase, lfam, env)
   | LSg (lbase, lfam) ->
-    let* gbase = eval_tp env lbase in
-    ret @@ GSg (gbase, lfam, env)
+    let+ gbase = eval_tp env lbase in
+    GSg (gbase, lfam, env)
   | LBool ->
     ret GBool
 
 
+let eval_tele env : ltele -> gtele m =
+  function
+  | LTlNil -> ret GTlNil
+  | LTlCons (lbl, ltp, ltele) ->
+    let+ gtp = eval_tp env ltp in
+    GTlCons (lbl, gtp, ltele, env)

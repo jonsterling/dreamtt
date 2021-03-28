@@ -31,6 +31,16 @@ and gtp =
 
 and gfam = gtp * ltp * env
 
+
+and gtele =
+  | GTlNil
+  | GTlCons of string * gtp * ltele * env
+
+and ltele =
+  | LTlNil
+  | LTlCons of string * ltp * ltele
+
+
 (** {2 Representation of terms} *)
 
 and ltm =
