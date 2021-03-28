@@ -5,7 +5,7 @@ open Core
 
 type code = R of rcode | L of lcode
 and rcode = Bool | Pi of string * code * code | Sg of string * code * code | Tt | Ff | Lam of string * code | Pair of code * code
-and lcode = Var of string | App of code * code | Fst of code | Snd of code | Core of tm
+and lcode = Var of string | App of code * code | Fst of code | Snd of code | Proj of string * code | Core of tm
 
 (* {1 Elaborator} *)
 
@@ -91,6 +91,9 @@ struct
     | Snd code ->
       let+ syn = elab_syn_code code in
       R.snd syn
+    | Proj (lbl, code) ->
+      let+ syn = elab_syn_code code in
+      R.proj lbl syn
     | Core tm ->
       ret @@ R.core tm
 
@@ -176,6 +179,7 @@ struct
     | LRcd _ ->
       failwith "TODO"
 
-    | LProj _ ->
-      failwith "TODO"
+    | LProj (lbl, tm) ->
+      let+ code = distill_ltm tm in
+      L (Proj (lbl, code))
 end

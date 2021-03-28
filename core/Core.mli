@@ -97,6 +97,9 @@ module Refiner : sig
   val fst : syn_rule -> syn_rule
   val snd : syn_rule -> syn_rule
 
+  (** {2 Dependent record types} *)
+  val proj : string -> syn_rule -> syn_rule
+
   (** {2 Structural rules} *)
 
   (** Every core language term carries has a unique type, and can hence be syn_rulethesized. *)

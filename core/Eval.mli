@@ -11,4 +11,5 @@ val eval_tele : env -> ltele -> gtele m
 
 val gapp : gtm -> gtm -> gtm m
 val gfst : gtm -> gtm m
+val gproj : string -> gtm -> gtm m
 val gsnd : gtm -> gtm m

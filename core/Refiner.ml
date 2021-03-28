@@ -131,6 +131,14 @@ let snd (syn_rule : syn_rule) : syn_rule =
   | _ ->
     M.throw TypeError
 
+let proj lbl (syn_rule : syn_rule) : syn_rule =
+  let* gtm = syn_rule in
+  match Theory.tp_of_gtm gtm with
+  | GRcdTp (lbls, _) when List.mem lbl lbls ->
+    M.lift_eval @@ Eval.gproj lbl gtm
+  | _ ->
+    M.throw TypeError
+
 
 let rec conv_ : gtm -> chk_rule =
   function

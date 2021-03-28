@@ -19,7 +19,7 @@ and rcode = Bool | Pi of string * code * code | Sg of string * code * code | Tt 
 (** [lcode] is a type of elimination forms. Included via {!Core} is the
     collection of all core-language terms; this embedding is used to crucial
     effect by the elaborator. *)
-and lcode = Var of string | App of code * code | Fst of code | Snd of code | Core of tm
+and lcode = Var of string | App of code * code | Fst of code | Snd of code | Proj of string * code | Core of tm
 
 
 (** {1 Elaboration} *)
