@@ -4,6 +4,7 @@ open Syntax
 exception Impossible
 
 module M = Error.M
+module StringMapUtil = Monad.MapUtil (M) (StringMap)
 open Monad.Notation (M)
 include M
 
@@ -37,14 +38,7 @@ let rec eval env : ltm -> gtm m =
     let* gtm = eval env ltm in
     gproj lbl gtm
   | LRcd (lbls, gtele, lmap) ->
-    let rec loop gmap =
-      function
-      | [] -> M.ret gmap
-      | (lbl, ltm) :: bs ->
-        let* gtm = eval env ltm in
-        loop (StringMap.add lbl gtm gmap) bs
-    in
-    let+ gmap = loop StringMap.empty @@ StringMap.bindings lmap in
+    let+ gmap = StringMapUtil.flat_map (eval env) lmap in
     GRcd (lbls, gtele, gmap)
 
 

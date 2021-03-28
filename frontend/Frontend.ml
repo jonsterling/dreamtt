@@ -22,6 +22,7 @@ struct
   type resolver = tm StringMap.t
 
   module M = Reader.Make (struct type local = resolver end)
+  module StringMapUtil = Monad.MapUtil (M) (StringMap)
   include M
 
   open Monad.Notation (M)
@@ -61,14 +62,7 @@ struct
       and+ chk1 = elab_chk_code code1 in
       R.pair chk0 chk1
     | Rcd code_map ->
-      let rec loop chk_map bs =
-        match bs with
-        | [] -> M.ret chk_map
-        | (lbl, code) :: bs ->
-          let* foo = elab_chk_code code in
-          loop (StringMap.add lbl foo chk_map) bs
-      in
-      let* chk_map = loop StringMap.empty @@ StringMap.bindings code_map in
+      let* chk_map = StringMapUtil.flat_map elab_chk_code code_map in
       M.ret @@ R.rcd chk_map
     | _ ->
       raise ElabError
@@ -171,6 +165,7 @@ module Distiller =
 struct
   module M = Local.Make (NameSupply)
   open Monad.Notation (M)
+  module StringMapUtil = Monad.MapUtil (M) (StringMap)
 
   include M
 
@@ -211,14 +206,7 @@ struct
       R (Pair (code0, code1))
 
     | LRcd (_, _, lmap) ->
-      let rec loop code_map =
-        function
-        | [] -> ret code_map
-        | (lbl, ltm) :: bs ->
-          let* code = distill_ltm ltm in
-          loop (StringMap.add lbl code code_map) bs
-      in
-      let+ code_map = loop StringMap.empty @@ StringMap.bindings lmap in
+      let+ code_map = StringMapUtil.flat_map distill_ltm lmap in
       R (Rcd code_map)
 
     | LProj (lbl, tm) ->
