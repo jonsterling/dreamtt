@@ -34,11 +34,11 @@ and gfam = gtp * ltp * env
 
 and gtele =
   | GTlNil
-  | GTlCons of string * gtp * ltele * env
+  | GTlCons of gtp * ltele * env
 
 and ltele =
   | LTlNil
-  | LTlCons of string * ltp * ltele
+  | LTlCons of ltp * ltele
 
 
 (** {2 Representation of terms} *)

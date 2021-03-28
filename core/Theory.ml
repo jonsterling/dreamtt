@@ -56,7 +56,7 @@ let rec equate_gtele : gtele -> gtele -> unit M.m =
   fun gtl0 gtl1 ->
     match gtl0, gtl1 with
     | GTlNil, GTlNil -> M.ret ()
-    | GTlCons (lbl0, gtp0, ltl0, env0), GTlCons (lbl1, gtp1, ltl1, env1) when lbl0 = lbl1 ->
+    | GTlCons (gtp0, ltl0, env0), GTlCons (gtp1, ltl1, env1) ->
       let* () = equate_gtp gtp0 gtp1 in
       M.scope gtp0 @@ fun x ->
       let envx0 = Env.append env0 x in

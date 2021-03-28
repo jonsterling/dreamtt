@@ -79,6 +79,6 @@ let rec eval_tp env : ltp -> gtp m =
 let eval_tele env : ltele -> gtele m =
   function
   | LTlNil -> ret GTlNil
-  | LTlCons (lbl, ltp, ltele) ->
+  | LTlCons (ltp, ltele) ->
     let+ gtp = eval_tp env ltp in
-    GTlCons (lbl, gtp, ltele, env)
+    GTlCons (gtp, ltele, env)
