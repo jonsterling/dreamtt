@@ -11,6 +11,8 @@ module Syntax = Syntax
 module Theory = Theory
 module Local = Local
 
+type 'a str_map = 'a Map.Make(String).t
+
 (** {2 Proof abstraction boundary} *)
 
 (** We wrap the syntax in an abstraction boundary a la LCF. *)
@@ -28,7 +30,7 @@ val tp_of_tm : tm -> tp
 
 (** {2 Inspecting types} *)
 
-type tp_head = [`Pi | `Sg | `Rcd | `Bool]
+type tp_head = [`Pi | `Sg | `Rcd of string list | `Bool]
 
 (** The head of a type can be exposed in order to guide the elaborator.  It is
     (surprisingly) unnecessary to expose any more data of a type to the
@@ -56,6 +58,7 @@ module Refiner : sig
   type tp_rule
   type chk_rule
   type syn_rule
+  type tele_rule
 
   (** {2 Runners} *)
 
@@ -78,6 +81,10 @@ module Refiner : sig
 
   (** {1 Inference rules} *)
 
+  (** {2 Telescopes} *)
+  val tl_nil : tele_rule
+  val tl_cons : string -> tp_rule -> (tm -> tele_rule) -> tele_rule
+
   (** {2 Booleans} *)
 
   val bool : tp_rule
@@ -98,6 +105,7 @@ module Refiner : sig
   val snd : syn_rule -> syn_rule
 
   (** {2 Dependent record types} *)
+  val rcd_tp : tele_rule -> tp_rule
   val rcd : chk_rule Map.Make(String).t -> chk_rule
   val proj : string -> syn_rule -> syn_rule
 

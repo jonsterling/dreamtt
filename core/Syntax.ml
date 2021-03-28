@@ -83,11 +83,11 @@ and env = gtm Env.t
 
 (** {1 Convenience } *)
 
-type tp_head = [`Pi | `Sg | `Rcd | `Bool]
+type tp_head = [`Pi | `Sg | `Rcd of string list | `Bool]
 let tp_head : gtp -> tp_head =
   function
   | GBool -> `Pi
   | GPi _ -> `Bool
   | GSg _ -> `Sg
-  | GRcdTp _ -> `Rcd
+  | GRcdTp (lbls, _) -> `Rcd lbls
 

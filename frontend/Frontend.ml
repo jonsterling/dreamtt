@@ -3,9 +3,12 @@ open Core
 
 (* {1 The source language} *)
 
+module StringMap = Map.Make (String)
+
 type code = R of rcode | L of lcode
-and rcode = Bool | Pi of string * code * code | Sg of string * code * code | Tt | Ff | Lam of string * code | Pair of code * code
+and rcode = Bool | Pi of string * code * code | RcdTp of tele_code | Sg of string * code * code | Tt | Ff | Lam of string * code | Pair of code * code | Rcd of code str_map
 and lcode = Var of string | App of code * code | Fst of code | Snd of code | Proj of string * code | Core of tm
+and tele_code = TlNil | TlCons of string * code * tele_code
 
 (* {1 Elaborator} *)
 
@@ -15,8 +18,8 @@ module R = Refiner
 
 module Elaborator =
 struct
-  module StrMap = Map.Make (String)
-  type resolver = tm StrMap.t
+  module StringMap = Map.Make (String)
+  type resolver = tm StringMap.t
 
   module M = Reader.Make (struct type local = resolver end)
   include M
@@ -29,7 +32,7 @@ struct
     M.run res @@ f x
 
   let add_var x var =
-    locally @@ StrMap.add x var
+    locally @@ StringMap.add x var
 
   let rec elab_chk_code : code -> R.chk_rule m =
     function
@@ -57,6 +60,16 @@ struct
       let+ chk0 = elab_chk_code code0
       and+ chk1 = elab_chk_code code1 in
       R.pair chk0 chk1
+    | Rcd code_map ->
+      let rec loop chk_map bs =
+        match bs with
+        | [] -> M.ret chk_map
+        | (lbl, code) :: bs ->
+          let* foo = elab_chk_code code in
+          loop (StringMap.add lbl foo chk_map) bs
+      in
+      let* chk_map = loop StringMap.empty @@ StringMap.bindings code_map in
+      M.ret @@ R.rcd chk_map
     | _ ->
       raise ElabError
 
@@ -73,14 +86,22 @@ struct
     | `Bool ->
       let+ syn = elab_syn_lcode lcode in
       R.conv syn
-    | `Rcd ->
-      failwith "TODO"
+    | `Rcd lbls ->
+      let rec loop chk_map lbls =
+        match lbls with
+        | [] -> M.ret chk_map
+        | lbl :: lbls ->
+          let* chk = elab_chk_lcode @@ Proj (lbl, L (lcode)) in
+          loop (StringMap.add lbl chk chk_map) lbls
+      in
+      let+ chk_map = loop StringMap.empty lbls in
+      R.rcd chk_map
 
   and elab_syn_lcode : lcode -> R.syn_rule m =
     function
     | Var x ->
       let+ res = read in
-      R.core @@ StrMap.find x res
+      R.core @@ StringMap.find x res
     | App (fn, arg) ->
       let+ syn = elab_syn_code fn
       and+ chk = elab_chk_code arg in
@@ -118,8 +139,21 @@ struct
       commute (R.sg tp_base) @@ fun var ->
       add_var x var @@
       elab_tp_code code1
+    | RcdTp tele_code ->
+      let+ tele = elab_tele_code tele_code in
+      R.rcd_tp tele
     | _ ->
       raise ElabError
+
+  and elab_tele_code : tele_code -> R.tele_rule m =
+    function
+    | TlNil ->
+      ret R.tl_nil
+    | TlCons (lbl, code0, code1) ->
+      let* tp_base = elab_tp_code code0 in
+      commute (R.tl_cons lbl tp_base) @@ fun var ->
+      add_var lbl var @@
+      elab_tele_code code1
 end
 
 module S = Syntax
@@ -176,8 +210,16 @@ struct
       and+ code1 = distill_ltm tm1 in
       R (Pair (code0, code1))
 
-    | LRcd _ ->
-      failwith "TODO"
+    | LRcd (_, _, lmap) ->
+      let rec loop code_map =
+        function
+        | [] -> ret code_map
+        | (lbl, ltm) :: bs ->
+          let* code = distill_ltm ltm in
+          loop (StringMap.add lbl code code_map) bs
+      in
+      let+ code_map = loop StringMap.empty @@ StringMap.bindings lmap in
+      R (Rcd code_map)
 
     | LProj (lbl, tm) ->
       let+ code = distill_ltm tm in

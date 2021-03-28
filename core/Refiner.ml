@@ -59,6 +59,31 @@ let ff : chk_rule =
   | GBool -> M.ret LFf
   | _ -> M.throw TypeError
 
+
+
+type tele_rule =
+  | TlRuleNil
+  | TlRuleCons of string * tp_rule * (gtm -> tele_rule)
+
+let rec refine_tele : tele_rule -> (string list * ltele) M.m =
+  function
+  | TlRuleNil -> M.ret ([], LTlNil)
+  | TlRuleCons (lbl, base, fam) ->
+    let* lbase = base in
+    let* gbase =
+      let* env = M.read in
+      M.lift_eval @@ Eval.eval_tp env lbase
+    in
+    M.scope gbase @@ fun var ->
+    let+ lbls, lfam = refine_tele (fam var) in
+    lbl :: lbls, LTlCons (lbase, lfam)
+
+let tl_nil =
+  TlRuleNil
+
+let tl_cons lbl tp_rule tele_rule =
+  TlRuleCons (lbl, tp_rule, tele_rule)
+
 let pi (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
   let* lbase = base in
   let* gbase =
@@ -78,6 +103,11 @@ let sg (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
   M.scope gbase @@ fun var ->
   let+ lfam = fam var in
   LSg (lbase, lfam)
+
+
+let rcd_tp (tele : tele_rule) : tp_rule =
+  let+ lbls, ltl = refine_tele tele in
+  LRcdTp (lbls, ltl)
 
 
 let lam (bdy : gtm -> chk_rule) : chk_rule =
@@ -179,8 +209,8 @@ let rec conv_ : gtm -> chk_rule =
     conv_ gtm gfib
   | GPair (_, gtm0, gtm1) ->
     pair (conv_ gtm0) (conv_ gtm1)
-  | GRcd _ ->
-    failwith "TODO"
+  | GRcd (_, _, gmap) ->
+    rcd @@ StringMap.map conv_ gmap
   | GEta gneu ->
     fun gtp ->
       let gtp' = Theory.tp_of_gneu gneu in
