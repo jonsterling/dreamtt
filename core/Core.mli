@@ -6,12 +6,12 @@
     {!tp} or {!tm} can be used in any scope.
 *)
 
+open Basis
+
 module Env = Env
 module Syntax = Syntax
 module Theory = Theory
 module Local = Local
-
-type 'a str_map = 'a Map.Make(String).t
 
 (** {2 Proof abstraction boundary} *)
 
@@ -106,7 +106,7 @@ module Refiner : sig
 
   (** {2 Dependent record types} *)
   val rcd_tp : tele_rule -> tp_rule
-  val rcd : chk_rule Map.Make(String).t -> chk_rule
+  val rcd : chk_rule StringMap.t -> chk_rule
   val proj : string -> syn_rule -> syn_rule
 
   (** {2 Structural rules} *)

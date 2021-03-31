@@ -1,5 +1,6 @@
 (** The core language syntax representation *)
 
+open Basis
 
 (** {1 Core language representations }
 
@@ -18,9 +19,6 @@
 *)
 
 (** {2 Representation of types} *)
-
-module StringMap = Map.Make (String)
-
 
 type ltp =
   | LPi of ltp * ltp

@@ -6,8 +6,6 @@ module Syntax = Syntax
 module Local = Local
 include Syntax
 
-type 'a str_map = 'a Map.Make(String).t
-
 module Proof =
 struct
   type 'a t = 'a

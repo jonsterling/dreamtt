@@ -3,10 +3,8 @@ open Core
 
 (* {1 The source language} *)
 
-module StringMap = Map.Make (String)
-
 type code = R of rcode | L of lcode
-and rcode = Bool | Pi of string * code * code | RcdTp of tele_code | Sg of string * code * code | Tt | Ff | Lam of string * code | Pair of code * code | Rcd of code str_map
+and rcode = Bool | Pi of string * code * code | RcdTp of tele_code | Sg of string * code * code | Tt | Ff | Lam of string * code | Pair of code * code | Rcd of code StringMap.t
 and lcode = Var of string | App of code * code | Fst of code | Snd of code | Proj of string * code | Core of tm
 and tele_code = TlNil | TlCons of string * code * tele_code
 
@@ -18,7 +16,6 @@ module R = Refiner
 
 module Elaborator =
 struct
-  module StringMap = Map.Make (String)
   type resolver = tm StringMap.t
 
   module M = Reader.Make (struct type local = resolver end)
