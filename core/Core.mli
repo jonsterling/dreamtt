@@ -97,6 +97,11 @@ module Refiner : sig
   val lam : (tm -> chk_rule) -> chk_rule
   val app : syn_rule -> chk_rule -> syn_rule
 
+  (** {2 Dependent record types} *)
+  val rcd_tp : tele_rule -> tp_rule
+  val rcd : chk_rule StringMap.t -> chk_rule
+  val proj : string -> syn_rule -> syn_rule
+
   (** {2 Dependent sum types} *)
 
   val sg : tp_rule -> (tm -> tp_rule) -> tp_rule
@@ -104,10 +109,6 @@ module Refiner : sig
   val fst : syn_rule -> syn_rule
   val snd : syn_rule -> syn_rule
 
-  (** {2 Dependent record types} *)
-  val rcd_tp : tele_rule -> tp_rule
-  val rcd : chk_rule StringMap.t -> chk_rule
-  val proj : string -> syn_rule -> syn_rule
 
   (** {2 Structural rules} *)
 
