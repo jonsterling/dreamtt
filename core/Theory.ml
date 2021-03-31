@@ -31,7 +31,7 @@ and tp_of_rcd_field lbls gtl lbl gneu =
   match lbls, gtl with
   | [], GTlNil ->
     raise Impossible
-  | lbl' :: lbls, GTlCons (gtp, _, _) when lbl = lbl' && not (List.mem lbl lbls) ->
+  | lbl' :: _, GTlCons (gtp, _, _) when lbl = lbl' ->
     gtp
   | lbl' :: lbls, GTlCons (_, ltl, env) ->
     let gtm = GEta (GSnoc (gneu, GProj lbl')) in
