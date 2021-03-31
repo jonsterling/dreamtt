@@ -1,22 +1,18 @@
 open Basis
-open Core
 
 (* {1 The source language} *)
 
-type code = R of rcode | L of lcode
-and rcode = Bool | Pi of string * code * code | RcdTp of tele_code | Sg of string * code * code | Tt | Ff | Lam of string * code | Pair of code * code | Rcd of code StringMap.t
-and lcode = Var of string | App of code * code | Fst of code | Snd of code | Proj of string * code | Core of tm
-and tele_code = TlNil | TlCons of string * code * tele_code
+include Syntax
 
 (* {1 Elaborator} *)
 
 exception ElabError
 
-module R = Refiner
+module R = Core.Refiner
 
 module Elaborator =
 struct
-  type resolver = tm StringMap.t
+  type resolver = Core.tm StringMap.t
 
   module M = Reader.Make (struct type local = resolver end)
   module StringMapUtil = Monad.MapUtil (M) (StringMap)
@@ -66,7 +62,7 @@ struct
 
   and elab_chk_lcode (lcode : lcode) : R.chk_rule m =
     commute R.with_tp @@ fun gtp ->
-    match tp_head gtp with
+    match Core.tp_head gtp with
     | `Pi ->
       commute R.lam @@ fun var ->
       elab_chk_lcode @@ App (L lcode, L (Core var))
@@ -147,30 +143,28 @@ struct
       elab_tele_code code1
 end
 
-module S = Syntax
-
-module NameSupply : Local.Elt with type sort = unit and type elt = string =
+module NameSupply : Core.Local.Elt with type sort = unit and type elt = string =
 struct
   type sort = unit
   type elt = string
 
   let var () lvl =
-    "x" ^ string_of_int (Env.int_of_lvl lvl)
+    "x" ^ string_of_int (Core.Env.int_of_lvl lvl)
 end
 
 module Distiller =
 struct
-  module M = Local.Make (NameSupply)
+  module M = Core.Local.Make (NameSupply)
   open Monad.Notation (M)
   module StringMapUtil = Monad.MapUtil (M) (StringMap)
 
   include M
 
-  let rec distill_ltm : S.ltm -> code m =
+  let rec distill_ltm : Core.Syntax.ltm -> code m =
     function
     | LVar ix ->
       let+ env = read in
-      let x = Env.proj env ix in
+      let x = Core.Env.proj env ix in
       L (Var x)
 
     | LTt ->
