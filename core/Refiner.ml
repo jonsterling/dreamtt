@@ -60,10 +60,17 @@ let ff : chk_rule =
   | _ -> M.throw TypeError
 
 
+(* invariant: does not return unless the list of labels has no shadowing *)
 type tele_rule = (string list * ltele) M.m
 
 let tl_nil : tele_rule =
   M.ret ([], LTlNil)
+
+let rec freshen lbl lbls =
+  if List.mem lbl lbls then
+    freshen (lbl ^ "'") lbls
+  else
+    lbl
 
 let tl_cons lbl tp_rule tele_rule =
   let* lbase = tp_rule in
@@ -73,7 +80,8 @@ let tl_cons lbl tp_rule tele_rule =
   in
   M.scope gbase @@ fun var ->
   let+ lbls, lfam = tele_rule var in
-  lbl :: lbls, LTlCons (lbase, lfam)
+  let lbl' = freshen lbl lbls in
+  lbl' :: lbls, LTlCons (lbase, lfam)
 
 let pi (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
   let* lbase = base in
