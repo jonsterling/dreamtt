@@ -24,16 +24,6 @@ let rec eval env : ltm -> gtm m =
     let* gtm0 = eval env ltm0 in
     let* gtm1 = eval env ltm1 in
     gapp gtm0 gtm1
-  | LPair (gfam, ltm0, ltm1) ->
-    let* gtm0 = eval env ltm0 in
-    let* gtm1 = eval env ltm1 in
-    ret @@ GPair (gfam, gtm0, gtm1)
-  | LFst ltm ->
-    let* gtm = eval env ltm in
-    gfst gtm
-  | LSnd ltm ->
-    let* gtm = eval env ltm in
-    gsnd gtm
   | LProj (lbl, ltm) ->
     let* gtm = eval env ltm in
     gproj lbl gtm
@@ -49,24 +39,6 @@ and gapp gtm0 gtm1 : gtm m =
     eval tm_env ltm
   | GEta gneu ->
     ret @@ GEta (GSnoc (gneu, GApp gtm1))
-  | _ ->
-    throw Impossible
-
-and gfst gtm =
-  match gtm with
-  | GPair (_, gtm0, _) ->
-    ret gtm0
-  | GEta gneu ->
-    ret @@ GEta (GSnoc (gneu, GFst))
-  | _ ->
-    throw Impossible
-
-and gsnd gtm =
-  match gtm with
-  | GPair (_, _, gtm1) ->
-    ret gtm1
-  | GEta gneu ->
-    ret @@ GEta (GSnoc (gneu, GSnd))
   | _ ->
     throw Impossible
 
@@ -89,9 +61,6 @@ let rec eval_tp env : ltp -> gtp m =
   | LPi (lbase, lfam) ->
     let+ gbase = eval_tp env lbase in
     GPi (gbase, lfam, env)
-  | LSg (lbase, lfam) ->
-    let+ gbase = eval_tp env lbase in
-    GSg (gbase, lfam, env)
   | LBool ->
     ret GBool
   | LRcdTp (lbls, ltl) ->

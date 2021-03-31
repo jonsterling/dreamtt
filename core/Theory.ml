@@ -10,8 +10,6 @@ let rec tp_of_gtm =
   | GTt | GFf -> GBool
   | GLam (gfam, _) ->
     GPi gfam
-  | GPair (gfam, _, _) ->
-    GSg gfam
   | GRcd (lbls, gtele, _) ->
     GRcdTp (lbls, gtele)
   | GEta gneu ->
@@ -24,11 +22,6 @@ and tp_of_gneu =
     match tp_of_gneu gneu, gfrm with
     | GPi (_, lfam, env), GApp gtm ->
       Eval.run_exn @@ Eval.eval_tp (Env.append env gtm) lfam
-    | GSg (gbase, _, _), GFst ->
-      gbase
-    | GSg (_, lfam, env), GSnd ->
-      let gfst = GEta (GSnoc (gneu, GFst)) in
-      Eval.run_exn @@ Eval.eval_tp (Env.append env gfst) lfam
     | GRcdTp (lbls, gtl), GProj lbl ->
       tp_of_rcd_field lbls gtl lbl gneu
     | _ ->
@@ -55,8 +48,7 @@ let rec equate_gtp : gtp -> gtp -> unit M.m =
   fun gtp0 gtp1 ->
     match gtp0, gtp1 with
     | GBool, GBool -> M.ret ()
-    | GPi (gbase0, lfam0, env0), GPi (gbase1, lfam1, env1)
-    | GSg (gbase0, lfam0, env0), GSg (gbase1, lfam1, env1) ->
+    | GPi (gbase0, lfam0, env0), GPi (gbase1, lfam1, env1) ->
       let* () = equate_gtp gbase0 gbase1 in
       M.scope gbase0 @@ fun x ->
       let envx0 = Env.append env0 x in

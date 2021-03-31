@@ -66,10 +66,6 @@ struct
     | `Pi ->
       commute R.lam @@ fun var ->
       elab_chk_lcode @@ App (L lcode, L (Core var))
-    | `Sg ->
-      let+ chk0 = elab_chk_lcode @@ Fst (L lcode)
-      and+ chk1 = elab_chk_lcode @@ Snd (L lcode) in
-      R.pair chk0 chk1
     | `Bool ->
       let+ syn = elab_syn_lcode lcode in
       R.conv syn
@@ -173,14 +169,6 @@ struct
     | LFf ->
       ret @@ R Ff
 
-    | LFst tm ->
-      let+ code = distill_ltm tm in
-      L (Fst code)
-
-    | LSnd tm ->
-      let+ code = distill_ltm tm in
-      L (Snd code)
-
     | LLam (_, tm) ->
       M.scope () @@ fun x ->
       let+ code = distill_ltm tm in
@@ -190,11 +178,6 @@ struct
       let+ code0 = distill_ltm tm0
       and+ code1 = distill_ltm tm1 in
       L (App (code0, code1))
-
-    | LPair (_, tm0, tm1) ->
-      let+ code0 = distill_ltm tm0
-      and+ code1 = distill_ltm tm1 in
-      R (Pair (code0, code1))
 
     | LRcd (_, _, lmap) ->
       let+ code_map = StringMapUtil.flat_map distill_ltm lmap in

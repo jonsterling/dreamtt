@@ -85,16 +85,6 @@ let pi (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
   let+ lfam = fam var in
   LPi (lbase, lfam)
 
-let sg (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
-  let* lbase = base in
-  let* gbase =
-    let* env = M.read in
-    M.lift_eval @@ Eval.eval_tp env lbase
-  in
-  M.scope gbase @@ fun var ->
-  let+ lfam = fam var in
-  LSg (lbase, lfam)
-
 
 let rcd_tp (tele : tele_rule) : tp_rule =
   let+ lbls, ltl = tele in
@@ -107,19 +97,6 @@ let lam (bdy : gtm -> chk_rule) : chk_rule =
     M.scope gbase @@ fun var ->
     let+ lbdy = bdy var @<< inst_tp_fam lfam env var in
     LLam (gfam, lbdy)
-  | _ ->
-    M.throw TypeError
-
-let pair (chk_rule0 : chk_rule) (chk_rule1 : chk_rule) : chk_rule =
-  function
-  | GSg ((gbase, lfam, lfam_env) as gfam) ->
-    let* ltm0 = chk_rule0 gbase in
-    let* gtm0 =
-      let* env = M.read in
-      M.lift_eval @@ Eval.eval env ltm0
-    in
-    let+ ltm1 = chk_rule1 @<< inst_tp_fam lfam lfam_env gtm0 in
-    LPair (gfam, ltm0, ltm1)
   | _ ->
     M.throw TypeError
 
@@ -165,22 +142,6 @@ let app (fn : syn_rule) (arg : chk_rule) : syn_rule =
   | _ ->
     M.throw TypeError
 
-let fst (syn_rule : syn_rule) : syn_rule =
-  let* gtm = syn_rule in
-  match Theory.tp_of_gtm gtm with
-  | GSg _ ->
-    M.lift_eval @@ Eval.gfst gtm
-  | _ ->
-    M.throw TypeError
-
-let snd (syn_rule : syn_rule) : syn_rule =
-  let* gtm = syn_rule in
-  match Theory.tp_of_gtm gtm with
-  | GSg _ ->
-    M.lift_eval @@ Eval.gsnd gtm
-  | _ ->
-    M.throw TypeError
-
 let proj lbl (syn_rule : syn_rule) : syn_rule =
   let* gtm = syn_rule in
   match Theory.tp_of_gtm gtm with
@@ -188,6 +149,25 @@ let proj lbl (syn_rule : syn_rule) : syn_rule =
     M.lift_eval @@ Eval.gproj lbl gtm
   | _ ->
     M.throw TypeError
+
+let fst (syn_rule : syn_rule) : syn_rule =
+  proj "fst" syn_rule
+
+let snd (syn_rule : syn_rule) : syn_rule =
+  proj "snd" syn_rule
+
+let sg (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
+  rcd_tp @@
+  tl_cons "fst" base @@ fun var ->
+  tl_cons "snd" (fam var) @@ fun _ ->
+  tl_nil
+
+let pair (chk_rule0 : chk_rule) (chk_rule1 : chk_rule) : chk_rule =
+  StringMap.empty
+  |> StringMap.add "fst" chk_rule0
+  |> StringMap.add "snd" chk_rule1
+  |> rcd
+
 
 
 let rec conv_ : gtm -> chk_rule =
@@ -198,8 +178,6 @@ let rec conv_ : gtm -> chk_rule =
     lam @@ fun var gfib ->
     let* gtm = inst_tm_fam ltm env var in
     conv_ gtm gfib
-  | GPair (_, gtm0, gtm1) ->
-    pair (conv_ gtm0) (conv_ gtm1)
   | GRcd (_, _, gmap) ->
     rcd @@ StringMap.map conv_ gmap
   | GEta gneu ->
@@ -219,8 +197,6 @@ and conv_neu_ : gneu -> ltm M.m =
   | GSnoc (gneu, gfrm) ->
     let* ltm = conv_neu_ gneu in
     match gfrm with
-    | GFst -> M.ret @@ LFst ltm
-    | GSnd -> M.ret @@ LSnd ltm
     | GProj lbl -> M.ret @@ LProj (lbl, ltm)
     | GApp gtm ->
       begin
