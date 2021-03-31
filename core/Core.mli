@@ -98,6 +98,7 @@ module Refiner : sig
   val app : syn_rule -> chk_rule -> syn_rule
 
   (** {2 Dependent record types} *)
+
   val rcd_tp : tele_rule -> tp_rule
   val rcd : chk_rule StringMap.t -> chk_rule
   val proj : string -> syn_rule -> syn_rule
