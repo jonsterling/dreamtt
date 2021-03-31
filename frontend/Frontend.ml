@@ -2,7 +2,7 @@ open Basis
 
 (* {1 The source language} *)
 
-include Syntax
+include Code
 
 (* {1 Elaborator} *)
 

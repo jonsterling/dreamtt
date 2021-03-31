@@ -5,7 +5,7 @@ open Basis
     We begin by defining a naive source language.
 *)
 
-include module type of Syntax
+include module type of Code
 
 
 (** {1 Elaboration} *)
