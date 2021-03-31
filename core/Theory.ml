@@ -49,13 +49,9 @@ let rec equate_gtp : gtp -> gtp -> unit M.m =
     match gtp0, gtp1 with
     | GBool, GBool -> M.ret ()
     | GPi (gbase0, lfam0, env0), GPi (gbase1, lfam1, env1) ->
-      let* () = equate_gtp gbase0 gbase1 in
-      M.scope gbase0 @@ fun x ->
-      let envx0 = Env.append env0 x in
-      let envx1 = Env.append env1 x in
-      let* gfib0 = M.lift_eval @@ Eval.eval_tp envx0 lfam0 in
-      let* gfib1 = M.lift_eval @@ Eval.eval_tp envx1 lfam1 in
-      equate_gtp gfib0 gfib1
+      let gtl0 = GTlCons (gbase0, LTlCons (lfam0, LTlNil), env0) in
+      let gtl1 = GTlCons (gbase1, LTlCons (lfam1, LTlNil), env1) in
+      equate_gtele gtl0 gtl1
     | GRcdTp (lbls0, gtl0), GRcdTp (lbls1, gtl1) when lbls0 = lbls1 ->
       equate_gtele gtl0 gtl1
     | _ ->
