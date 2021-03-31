@@ -42,7 +42,6 @@ let inst_tm_fam : ltm -> env -> gtm -> gtm M.m =
   M.lift_eval @@ Eval.eval envx lfam
 
 
-
 let core =
   M.ret
 
@@ -139,7 +138,7 @@ let rcd (chk_map : chk_rule StringMap.t) : chk_rule =
 
 let app (fn : syn_rule) (arg : chk_rule) : syn_rule =
   let* gtm0 = fn in
-  match Theory.tp_of_gtm gtm0 with
+  Eval.tp_of_gtm gtm0 |> M.lift_eval |>> function
   | GPi (gbase, _, _) ->
     let* larg = arg gbase in
     let* env = M.read in
@@ -152,7 +151,7 @@ let app (fn : syn_rule) (arg : chk_rule) : syn_rule =
 
 let proj lbl (syn_rule : syn_rule) : syn_rule =
   let* gtm = syn_rule in
-  match Theory.tp_of_gtm gtm with
+  Eval.tp_of_gtm gtm |> M.lift_eval |>> function
   | GRcdTp (lbls, _) when List.mem lbl lbls ->
     M.lift_eval @@ Eval.gproj lbl gtm
   | _ ->
@@ -190,7 +189,7 @@ let rec conv_ : gtm -> chk_rule =
     rcd @@ StringMap.map conv_ gmap
   | GEta gneu ->
     fun gtp ->
-      let gtp' = Theory.tp_of_gneu gneu in
+      let* gtp' = M.lift_eval @@ Eval.tp_of_gneu gneu in
       let* () = Theory.equate_gtp gtp gtp' in
       conv_neu_ gneu
 
@@ -207,14 +206,12 @@ and conv_neu_ : gneu -> ltm M.m =
     match gfrm with
     | GProj lbl -> M.ret @@ LProj (lbl, ltm)
     | GApp gtm ->
-      begin
-        match Theory.tp_of_gneu gneu with
-        | GPi (gbase, _, _) ->
-          let+ ltm' = conv_ gtm gbase in
-          LApp (ltm, ltm')
-        | _ ->
-          M.throw TypeError
-      end
+      Eval.tp_of_gneu gneu |> M.lift_eval |>> function
+      | GPi (gbase, _, _) ->
+        let+ ltm' = conv_ gtm gbase in
+        LApp (ltm, ltm')
+      | _ ->
+        M.throw TypeError
 
 let conv : syn_rule -> chk_rule =
   fun syn gtp ->

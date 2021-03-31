@@ -2,44 +2,6 @@ open Basis
 open Syntax
 
 exception UnequalTypes
-exception Impossible
-
-
-let rec tp_of_gtm =
-  function
-  | GTt | GFf -> GBool
-  | GLam (gfam, _) ->
-    GPi gfam
-  | GRcd (lbls, gtele, _) ->
-    GRcdTp (lbls, gtele)
-  | GEta gneu ->
-    tp_of_gneu gneu
-
-and tp_of_gneu =
-  function
-  | GVar (_, gtp) -> gtp
-  | GSnoc (gneu, gfrm) ->
-    match tp_of_gneu gneu, gfrm with
-    | GPi (_, lfam, env), GApp gtm ->
-      Eval.run_exn @@ Eval.eval_tp (Env.append env gtm) lfam
-    | GRcdTp (lbls, gtl), GProj lbl ->
-      tp_of_rcd_field lbls gtl lbl gneu
-    | _ ->
-      raise Impossible
-
-and tp_of_rcd_field lbls gtl lbl gneu =
-  match lbls, gtl with
-  | [], GTlNil ->
-    raise Impossible
-  | lbl' :: _, GTlCons (gtp, _, _) when lbl = lbl' ->
-    gtp
-  | lbl' :: lbls, GTlCons (_, ltl, env) ->
-    let gtm = GEta (GSnoc (gneu, GProj lbl')) in
-    let gtl' = Eval.run_exn @@ Eval.eval_tele (Env.append env gtm) ltl in
-    tp_of_rcd_field lbls gtl' lbl gneu
-  | _ ->
-    raise Impossible
-
 
 module M = RefineM
 

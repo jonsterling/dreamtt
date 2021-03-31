@@ -73,3 +73,43 @@ and eval_tele env : ltele -> gtele m =
   | LTlCons (ltp, ltele) ->
     let+ gtp = eval_tp env ltp in
     GTlCons (gtp, ltele, env)
+
+
+
+let rec tp_of_gtm =
+  function
+  | GTt | GFf -> ret GBool
+  | GLam (gfam, _) ->
+    ret @@ GPi gfam
+  | GRcd (lbls, gtele, _) ->
+    ret @@ GRcdTp (lbls, gtele)
+  | GEta gneu ->
+    tp_of_gneu gneu
+
+and tp_of_gneu =
+  function
+  | GVar (_, gtp) ->
+    ret gtp
+  | GSnoc (gneu, gfrm) ->
+    let* tp = tp_of_gneu gneu in
+    match tp, gfrm with
+    | GPi (_, lfam, env), GApp gtm ->
+      eval_tp (Env.append env gtm) lfam
+    | GRcdTp (lbls, gtl), GProj lbl ->
+      tp_of_rcd_field lbls gtl lbl gneu
+    | _ ->
+      raise Impossible
+
+and tp_of_rcd_field lbls gtl lbl gneu =
+  match lbls, gtl with
+  | [], GTlNil ->
+    throw Impossible
+  | lbl' :: _, GTlCons (gtp, _, _) when lbl = lbl' ->
+    ret gtp
+  | lbl' :: lbls, GTlCons (_, ltl, env) ->
+    let gtm = GEta (GSnoc (gneu, GProj lbl')) in
+    let* gtl' = eval_tele (Env.append env gtm) ltl in
+    tp_of_rcd_field lbls gtl' lbl gneu
+  | _ ->
+    throw Impossible
+

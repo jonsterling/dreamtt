@@ -26,7 +26,7 @@ end
 type tp = Syntax.gtp Proof.t
 type tm = Syntax.gtm Proof.t
 
-val tp_of_tm : tm -> tp
+val tp_of_tm : tm -> tp Eval.m
 
 (** {2 Inspecting types} *)
 
