@@ -10,7 +10,7 @@ include module type of Code
 
 (** {1 Elaboration} *)
 
-module R = Core.Refiner
+module R := Core.Refiner
 
 module Elaborator :
 sig
