@@ -1,30 +1,16 @@
 open Basis
-open Core
 
 (** {1 The source language}
 
     We begin by defining a naive source language.
 *)
 
-(** The central idea to the elaboration algorithm is to distinguish
-    introduction forms from elimination forms; unlike some classic
-    bidirectional algorithms, this distinction does not line up exactly with {i
-    checking} vs. {i synthesis}, but it interacts with it in a non-trivial way:
-    we only synthesize elimination forms at positive types. *)
-type code = R of rcode | L of lcode
-
-(** [rcode] is a type of introduction forms *)
-and rcode = Bool | Pi of string * code * code | Sg of string * code * code | Tt | Ff | Lam of string * code | Pair of code * code
-
-(** [lcode] is a type of elimination forms. Included via {!Core} is the
-    collection of all core-language terms; this embedding is used to crucial
-    effect by the elaborator. *)
-and lcode = Var of string | App of code * code | Fst of code | Snd of code | Core of tm
+include module type of Code
 
 
 (** {1 Elaboration} *)
 
-module R = Refiner
+module R := Core.Refiner
 
 module Elaborator :
 sig
@@ -57,8 +43,8 @@ end
 (** The distiller takes a core-language term and turns it into a source language code. *)
 module Distiller : sig
   include Monad.S
-  val run : string Env.t -> 'a m -> 'a Error.M.m
-  val distill_ltm : Syntax.ltm -> code m
+  val run : string Core.Env.t -> 'a m -> 'a Error.M.m
+  val distill_ltm : Core.Syntax.ltm -> code m
 end
 
 module Driver = Driver

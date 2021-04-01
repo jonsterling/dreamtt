@@ -42,7 +42,6 @@ let inst_tm_fam : ltm -> env -> gtm -> gtm M.m =
   M.lift_eval @@ Eval.eval envx lfam
 
 
-
 let core =
   M.ret
 
@@ -59,6 +58,30 @@ let ff : chk_rule =
   | GBool -> M.ret LFf
   | _ -> M.throw TypeError
 
+
+(* invariant: does not return unless the list of labels has no shadowing *)
+type tele_rule = (string list * ltele) M.m
+
+let tl_nil : tele_rule =
+  M.ret ([], LTlNil)
+
+let rec freshen lbl lbls =
+  if List.mem lbl lbls then
+    freshen (lbl ^ "'") lbls
+  else
+    lbl
+
+let tl_cons lbl tp_rule tele_rule =
+  let* lbase = tp_rule in
+  let* gbase =
+    let* env = M.read in
+    M.lift_eval @@ Eval.eval_tp env lbase
+  in
+  M.scope gbase @@ fun var ->
+  let+ lbls, lfam = tele_rule var in
+  let lbl' = freshen lbl lbls in
+  lbl' :: lbls, LTlCons (lbase, lfam)
+
 let pi (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
   let* lbase = base in
   let* gbase =
@@ -69,15 +92,10 @@ let pi (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
   let+ lfam = fam var in
   LPi (lbase, lfam)
 
-let sg (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
-  let* lbase = base in
-  let* gbase =
-    let* env = M.read in
-    M.lift_eval @@ Eval.eval_tp env lbase
-  in
-  M.scope gbase @@ fun var ->
-  let+ lfam = fam var in
-  LSg (lbase, lfam)
+
+let rcd_tp (tele : tele_rule) : tp_rule =
+  let+ lbls, ltl = tele in
+  LRcdTp (lbls, ltl)
 
 
 let lam (bdy : gtm -> chk_rule) : chk_rule =
@@ -89,22 +107,38 @@ let lam (bdy : gtm -> chk_rule) : chk_rule =
   | _ ->
     M.throw TypeError
 
-let pair (chk_rule0 : chk_rule) (chk_rule1 : chk_rule) : chk_rule =
+let rcd (chk_map : chk_rule StringMap.t) : chk_rule =
   function
-  | GSg ((gbase, lfam, lfam_env) as gfam) ->
-    let* ltm0 = chk_rule0 gbase in
-    let* gtm0 =
-      let* env = M.read in
-      M.lift_eval @@ Eval.eval env ltm0
+  | GRcdTp (lbls, gtl) ->
+    let rec loop tmap lbls gtl =
+      match lbls, gtl with
+      | [], GTlNil -> M.ret tmap
+      | lbl :: lbls, GTlCons (gtp, ltl, tlenv) ->
+        begin
+          match StringMap.find_opt lbl chk_map with
+          | Some chk_rule ->
+            let* ltm = chk_rule gtp in
+            let* gtm =
+              let* env = M.read in
+              M.lift_eval @@ Eval.eval env ltm
+            in
+            let* gtl' = M.lift_eval @@ Eval.eval_tele (Env.append tlenv gtm) ltl in
+            let tmap' = StringMap.add lbl ltm tmap in
+            loop tmap' lbls gtl'
+          | None ->
+            M.throw TypeError
+        end
+      | _ ->
+        M.throw TypeError
     in
-    let+ ltm1 = chk_rule1 @<< inst_tp_fam lfam lfam_env gtm0 in
-    LPair (gfam, ltm0, ltm1)
+    let* tmap = loop StringMap.empty lbls gtl in
+    M.ret @@ LRcd (lbls, gtl, tmap)
   | _ ->
     M.throw TypeError
 
 let app (fn : syn_rule) (arg : chk_rule) : syn_rule =
   let* gtm0 = fn in
-  match Theory.tp_of_gtm gtm0 with
+  Eval.tp_of_gtm gtm0 |> M.lift_eval |>> function
   | GPi (gbase, _, _) ->
     let* larg = arg gbase in
     let* env = M.read in
@@ -115,21 +149,32 @@ let app (fn : syn_rule) (arg : chk_rule) : syn_rule =
   | _ ->
     M.throw TypeError
 
-let fst (syn_rule : syn_rule) : syn_rule =
+let proj lbl (syn_rule : syn_rule) : syn_rule =
   let* gtm = syn_rule in
-  match Theory.tp_of_gtm gtm with
-  | GSg _ ->
-    M.lift_eval @@ Eval.gfst gtm
+  Eval.tp_of_gtm gtm |> M.lift_eval |>> function
+  | GRcdTp (lbls, _) when List.mem lbl lbls ->
+    M.lift_eval @@ Eval.gproj lbl gtm
   | _ ->
     M.throw TypeError
 
+let fst (syn_rule : syn_rule) : syn_rule =
+  proj "fst" syn_rule
+
 let snd (syn_rule : syn_rule) : syn_rule =
-  let* gtm = syn_rule in
-  match Theory.tp_of_gtm gtm with
-  | GSg _ ->
-    M.lift_eval @@ Eval.gsnd gtm
-  | _ ->
-    M.throw TypeError
+  proj "snd" syn_rule
+
+let sg (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
+  rcd_tp @@
+  tl_cons "fst" base @@ fun var ->
+  tl_cons "snd" (fam var) @@ fun _ ->
+  tl_nil
+
+let pair (chk_rule0 : chk_rule) (chk_rule1 : chk_rule) : chk_rule =
+  StringMap.empty
+  |> StringMap.add "fst" chk_rule0
+  |> StringMap.add "snd" chk_rule1
+  |> rcd
+
 
 
 let rec conv_ : gtm -> chk_rule =
@@ -140,13 +185,14 @@ let rec conv_ : gtm -> chk_rule =
     lam @@ fun var gfib ->
     let* gtm = inst_tm_fam ltm env var in
     conv_ gtm gfib
-  | GPair (_, gtm0, gtm1) ->
-    pair (conv_ gtm0) (conv_ gtm1)
+  | GRcd (_, _, gmap) ->
+    rcd @@ StringMap.map conv_ gmap
   | GEta gneu ->
     fun gtp ->
-      let gtp' = Theory.tp_of_gneu gneu in
+      let* gtp' = M.lift_eval @@ Eval.tp_of_gneu gneu in
       let* () = Theory.equate_gtp gtp gtp' in
       conv_neu_ gneu
+
 
 and conv_neu_ : gneu -> ltm M.m =
   function
@@ -158,17 +204,14 @@ and conv_neu_ : gneu -> ltm M.m =
   | GSnoc (gneu, gfrm) ->
     let* ltm = conv_neu_ gneu in
     match gfrm with
-    | GFst -> M.ret @@ LFst ltm
-    | GSnd -> M.ret @@ LSnd ltm
+    | GProj lbl -> M.ret @@ LProj (lbl, ltm)
     | GApp gtm ->
-      begin
-        match Theory.tp_of_gneu gneu with
-        | GPi (gbase, _, _) ->
-          let+ ltm' = conv_ gtm gbase in
-          LApp (ltm, ltm')
-        | _ ->
-          M.throw TypeError
-      end
+      Eval.tp_of_gneu gneu |> M.lift_eval |>> function
+      | GPi (gbase, _, _) ->
+        let+ ltm' = conv_ gtm gbase in
+        LApp (ltm, ltm')
+      | _ ->
+        M.throw TypeError
 
 let conv : syn_rule -> chk_rule =
   fun syn gtp ->

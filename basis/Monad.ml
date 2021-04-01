@@ -52,3 +52,17 @@ struct
   let bind x f = f x
 end
 
+
+module MapUtil (M : S) (N : Map.S) =
+struct
+  open Notation (M)
+  let flat_map (f : 'a -> 'b M.m) (map : 'a N.t) : 'b N.t M.m =
+    let rec loop out =
+      function
+      | [] -> M.ret out
+      | (lbl, x) :: xs ->
+        let* y = f x in
+        loop (N.add lbl y out) xs
+    in
+    loop N.empty @@ N.bindings map
+end

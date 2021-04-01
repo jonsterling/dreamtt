@@ -6,6 +6,8 @@
     {!tp} or {!tm} can be used in any scope.
 *)
 
+open Basis
+
 module Env = Env
 module Syntax = Syntax
 module Theory = Theory
@@ -13,7 +15,7 @@ module Local = Local
 
 (** {2 Proof abstraction boundary} *)
 
-(** We wrap the syntax in an abstraction boundary à la LCF. *)
+(** We wrap the syntax in an abstraction boundary a la LCF. *)
 
 module Proof :
 sig
@@ -24,11 +26,11 @@ end
 type tp = Syntax.gtp Proof.t
 type tm = Syntax.gtm Proof.t
 
-val tp_of_tm : tm -> tp
+val tp_of_tm : tm -> tp Eval.m
 
 (** {2 Inspecting types} *)
 
-type tp_head = [`Pi | `Sg | `Bool]
+type tp_head = [`Pi | `Rcd of string list | `Bool]
 
 (** The head of a type can be exposed in order to guide the elaborator.  It is
     (surprisingly) unnecessary to expose any more data of a type to the
@@ -56,6 +58,7 @@ module Refiner : sig
   type tp_rule
   type chk_rule
   type syn_rule
+  type tele_rule
 
   (** {2 Runners} *)
 
@@ -78,6 +81,10 @@ module Refiner : sig
 
   (** {1 Inference rules} *)
 
+  (** {2 Telescopes} *)
+  val tl_nil : tele_rule
+  val tl_cons : string -> tp_rule -> (tm -> tele_rule) -> tele_rule
+
   (** {2 Booleans} *)
 
   val bool : tp_rule
@@ -90,12 +97,19 @@ module Refiner : sig
   val lam : (tm -> chk_rule) -> chk_rule
   val app : syn_rule -> chk_rule -> syn_rule
 
+  (** {2 Dependent record types} *)
+
+  val rcd_tp : tele_rule -> tp_rule
+  val rcd : chk_rule StringMap.t -> chk_rule
+  val proj : string -> syn_rule -> syn_rule
+
   (** {2 Dependent sum types} *)
 
   val sg : tp_rule -> (tm -> tp_rule) -> tp_rule
   val pair : chk_rule -> chk_rule -> chk_rule
   val fst : syn_rule -> syn_rule
   val snd : syn_rule -> syn_rule
+
 
   (** {2 Structural rules} *)
 
