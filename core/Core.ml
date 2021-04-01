@@ -1,7 +1,7 @@
-include Theory
+include Equate
 
 module Env = Env
-module Theory = Theory
+module Equate = Equate
 module Syntax = Syntax
 module Local = Local
 include Syntax

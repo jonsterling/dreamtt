@@ -10,7 +10,7 @@ open Basis
 
 module Env = Env
 module Syntax = Syntax
-module Theory = Theory
+module Equate = Equate
 module Local = Local
 
 (** {2 Proof abstraction boundary} *)

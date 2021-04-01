@@ -190,7 +190,7 @@ let rec conv_ : gtm -> chk_rule =
   | GEta gneu ->
     fun gtp ->
       let* gtp' = M.lift_eval @@ Eval.tp_of_gneu gneu in
-      let* () = Theory.equate_gtp gtp gtp' in
+      let* () = Equate.equate_gtp gtp gtp' in
       conv_neu_ gneu
 
 
