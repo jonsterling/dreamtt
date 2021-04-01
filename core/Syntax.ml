@@ -68,6 +68,15 @@ and gneu =
   | GVar of Env.lvl * gtp
   | GSnoc of gneu * gfrm
 
+(*
+   TODO: add "stabilized neutrals" from Sterling-Angiuli '21
+
+and gneu_stab =
+  {supp : Logic.prop;
+   base : gneu;
+   part : ltm * env}
+*)
+
 and gfrm =
   | GProj of string
   | GApp of gtm
