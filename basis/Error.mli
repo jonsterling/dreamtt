@@ -1,7 +1,11 @@
 module type Ops =
 sig
   type 'a m
+
+  (** Throw an exception to be captured within the monad. *)
   val throw : exn -> 'a m
+
+  (** Handle an exception within the monad. *)
   val catch : 'a m -> (('a, exn) Result.t -> 'b m) -> 'b m
 end
 

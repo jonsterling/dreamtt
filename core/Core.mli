@@ -11,12 +11,13 @@ open Basis
 module Env = Env
 module Syntax = Syntax
 module Equate = Equate
+module Logic = Logic
 module Effect = Effect
 open Effect
 
 (** {2 Proof abstraction boundary} *)
 
-(** We wrap the syntax in an abstraction boundary a la LCF. *)
+(** We wrap the syntax in an abstraction boundary as in LCF. *)
 
 module Proof :
 sig

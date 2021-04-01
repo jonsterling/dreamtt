@@ -3,6 +3,7 @@ include Equate
 module Env = Env
 module Equate = Equate
 module Syntax = Syntax
+module Logic = Logic
 module Effect = Effect
 include Syntax
 
