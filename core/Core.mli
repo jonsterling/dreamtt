@@ -32,7 +32,7 @@ val tp_of_tm : tm -> tp G.m
 
 (** {2 Inspecting types} *)
 
-type tp_head = [`Pi | `Rcd of string list | `Bool]
+type tp_head = [`Pi | `Rcd of string list | `Bool | `Abort]
 
 (** The head of a type can be exposed in order to guide the elaborator.  It is
     (surprisingly) unnecessary to expose any more data of a type to the
@@ -92,6 +92,9 @@ module Refiner : sig
   val pair : chk_rule -> chk_rule -> chk_rule
   val fst : syn_rule -> syn_rule
   val snd : syn_rule -> syn_rule
+
+  (** {2 Logical layer} *)
+  val chk_abort : chk_rule
 
 
   (** {2 Structural rules} *)

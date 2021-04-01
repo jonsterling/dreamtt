@@ -46,3 +46,6 @@ let rec distill_ltm : Syntax.ltm -> code m =
   | LProj (lbl, tm) ->
     let+ code = distill_ltm tm in
     L (Proj (lbl, code))
+
+  | LAbort ->
+    ret @@ R Abort

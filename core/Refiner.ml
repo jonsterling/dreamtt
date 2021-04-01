@@ -145,6 +145,12 @@ let pair (chk_rule0 : chk_rule) (chk_rule1 : chk_rule) : chk_rule =
   |> StringMap.add "snd" chk_rule1
   |> rcd
 
+let chk_abort : chk_rule =
+  fun _ ->
+  let* thy = L.theory in
+  match Logic.consistency thy with
+  | `Inconsistent -> L.ret LAbort
+  | `Consistent -> L.throw TypeError
 
 
 let rec conv_ : gtm -> chk_rule =
@@ -162,6 +168,8 @@ let rec conv_ : gtm -> chk_rule =
       let* gtp' = L.global @@ Eval.tp_of_gneu gneu in
       let* () = L.global @@ Equate.equate_gtp gtp gtp' in
       conv_neu_ gneu
+  | GAbort ->
+    chk_abort
 
 
 and conv_neu_ : gneu -> ltm L.m =

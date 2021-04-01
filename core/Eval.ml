@@ -6,9 +6,19 @@ exception Impossible
 
 module LStringMapUtil = Monad.MapUtil (L) (StringMap)
 
+let guard_gtm m =
+  let open Monad.Notation (G) in
+  let* thy = G.theory in
+  match Logic.consistency thy with
+  | `Consistent -> m
+  | `Inconsistent ->
+    G.ret GAbort
+
+
 let rec eval : ltm -> gtm lm =
+  fun ltm ->
   let open Monad.Notation (L) in
-  function
+  match ltm with
   | LLam (gfam, ltm) ->
     let+ env = L.env in
     GLam (gfam, (ltm, env))
@@ -27,8 +37,11 @@ let rec eval : ltm -> gtm lm =
   | LRcd (lbls, gtele, lmap) ->
     let+ gmap = LStringMapUtil.flat_map eval lmap in
     GRcd (lbls, gtele, gmap)
+  | LAbort ->
+    L.ret GAbort
 
-and gapp gtm0 gtm1 : gtm gm =
+and gapp gtm0 gtm1 =
+  guard_gtm @@
   match gtm0 with
   | GLam (_, (ltm, tm_env)) ->
     G.local (Env.append tm_env gtm1) @@ eval ltm
@@ -38,6 +51,7 @@ and gapp gtm0 gtm1 : gtm gm =
     G.throw Impossible
 
 and gproj lbl gtm =
+  guard_gtm @@
   match gtm with
   | GRcd (_, _, gmap) ->
     begin
@@ -62,6 +76,8 @@ let rec eval_tp : ltp -> gtp lm =
   | LRcdTp (lbls, ltl) ->
     let+ gtl = eval_tele ltl in
     GRcdTp (lbls, gtl)
+  | LAbortTp ->
+    L.ret GAbortTp
 
 and eval_tele : ltele -> gtele lm =
   let open Monad.Notation (L) in
@@ -83,6 +99,8 @@ let rec tp_of_gtm =
     G.ret @@ GRcdTp (lbls, gtele)
   | GEta gneu ->
     tp_of_gneu gneu
+  | GAbort ->
+    G.ret GAbortTp
 
 and tp_of_gneu =
   let open Monad.Notation (G) in

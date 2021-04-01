@@ -24,11 +24,13 @@ type ltp =
   | LPi of ltp * ltp
   | LRcdTp of string list * ltele
   | LBool
+  | LAbortTp
 
 and gtp =
   | GPi of gfam
   | GRcdTp of string list * gtele
   | GBool
+  | GAbortTp
 
 and gfam = gtp * ltp * env
 
@@ -53,12 +55,14 @@ and ltm =
 
   | LRcd of string list * gtele * ltm StringMap.t
   | LProj of string * ltm
+  | LAbort
 
 and gtm =
   | GTt | GFf
   | GLam of gfam * (ltm * env)
   | GRcd of string list * gtele * gtm StringMap.t
   | GEta of gneu
+  | GAbort
 
 and gneu =
   | GVar of Env.lvl * gtp
@@ -73,10 +77,11 @@ and env = gtm Env.t
 
 (** {1 Convenience } *)
 
-type tp_head = [`Pi | `Rcd of string list | `Bool]
+type tp_head = [`Pi | `Rcd of string list | `Bool | `Abort]
 let tp_head : gtp -> tp_head =
   function
   | GBool -> `Pi
   | GPi _ -> `Bool
   | GRcdTp (lbls, _) -> `Rcd lbls
+  | GAbortTp -> `Abort
 

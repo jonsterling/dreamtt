@@ -4,9 +4,17 @@ open Effect
 
 exception UnequalTypes
 
+let guard m =
+  let open Monad.Notation (G) in
+  let* thy = G.theory in
+  match Logic.consistency thy with
+  | `Inconsistent -> G.ret ()
+  | `Consistent -> m
+
 let rec equate_gtp : gtp -> gtp -> unit G.m =
   let open Monad.Notation (G) in
   fun gtp0 gtp1 ->
+    guard @@
     match gtp0, gtp1 with
     | GBool, GBool -> G.ret ()
     | GPi (gbase0, lfam0, env0), GPi (gbase1, lfam1, env1) ->
@@ -21,6 +29,7 @@ let rec equate_gtp : gtp -> gtp -> unit G.m =
 and equate_gtele : gtele -> gtele -> unit G.m =
   let open Monad.Notation (G) in
   fun gtl0 gtl1 ->
+    guard @@
     match gtl0, gtl1 with
     | GTlNil, GTlNil -> G.ret ()
     | GTlCons (gtp0, ltl0, env0), GTlCons (gtp1, ltl1, env1) ->

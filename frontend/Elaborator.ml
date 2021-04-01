@@ -71,6 +71,8 @@ and elab_chk_lcode (lcode : lcode) : R.chk_rule m =
     in
     let+ chk_map = loop StringMap.empty lbls in
     R.rcd chk_map
+  | `Abort ->
+    ret @@ R.chk_abort
 
 and elab_syn_lcode : lcode -> R.syn_rule m =
   function
