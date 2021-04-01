@@ -23,4 +23,5 @@ sig
   val global : 'a gm -> 'a m
   val env : gtm Env.t m
   val bind_tm : gtp -> (gtm -> 'a m) -> 'a m
+  val append_tm : gtm -> 'a m -> 'a m
 end

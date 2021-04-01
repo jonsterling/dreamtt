@@ -7,7 +7,7 @@ struct
   let update_thy upd {thy; env} =
     {thy = Logic.update upd thy; env}
 
-  let bind_tm tm {thy; env} =
+  let append_tm tm {thy; env} =
     {thy; env = Env.append env tm}
 
   let set_env env {thy; _} =
@@ -46,7 +46,10 @@ struct
     let* e = env in
     let lvl = Env.fresh e in
     let var = GEta (GVar (lvl, gtp)) in
-    locally (E.bind_tm var) @@ kont var
+    locally (E.append_tm var) @@ kont var
+
+  let append_tm gtm m =
+    locally (E.append_tm gtm) m
 end
 
 module G = L

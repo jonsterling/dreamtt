@@ -1,15 +1,14 @@
 open Basis
 open Syntax
+open Effect
 
 exception UnequalTypes
 
-module M = Effect.L
-
-let rec equate_gtp : gtp -> gtp -> unit M.m =
-  let open Monad.Notation (M) in
+let rec equate_gtp : gtp -> gtp -> unit G.m =
+  let open Monad.Notation (G) in
   fun gtp0 gtp1 ->
     match gtp0, gtp1 with
-    | GBool, GBool -> M.ret ()
+    | GBool, GBool -> G.ret ()
     | GPi (gbase0, lfam0, env0), GPi (gbase1, lfam1, env1) ->
       let gtl0 = GTlCons (gbase0, LTlCons (lfam0, LTlNil), env0) in
       let gtl1 = GTlCons (gbase1, LTlCons (lfam1, LTlNil), env1) in
@@ -17,20 +16,21 @@ let rec equate_gtp : gtp -> gtp -> unit M.m =
     | GRcdTp (lbls0, gtl0), GRcdTp (lbls1, gtl1) when lbls0 = lbls1 ->
       equate_gtele gtl0 gtl1
     | _ ->
-      M.throw UnequalTypes
+      G.throw UnequalTypes
 
-and equate_gtele : gtele -> gtele -> unit M.m =
-  let open Monad.Notation (M) in
+and equate_gtele : gtele -> gtele -> unit G.m =
+  let open Monad.Notation (G) in
   fun gtl0 gtl1 ->
     match gtl0, gtl1 with
-    | GTlNil, GTlNil -> M.ret ()
+    | GTlNil, GTlNil -> G.ret ()
     | GTlCons (gtp0, ltl0, env0), GTlCons (gtp1, ltl1, env1) ->
-      let* () = equate_gtp gtp0 gtp1 in
-      M.bind_tm gtp0 @@ fun x ->
-      let envx0 = Env.append env0 x in
-      let envx1 = Env.append env1 x in
-      let* gfib0 = M.global @@ Eval.eval_tele envx0 ltl0 in
-      let* gfib1 = M.global @@ Eval.eval_tele envx1 ltl1 in
+      let gfib env gtp ltl =
+        G.local env @@
+        L.bind_tm gtp @@ fun _ ->
+        Eval.eval_tele ltl
+      in
+      let* gfib0 = gfib env0 gtp0 ltl0 in
+      let* gfib1 = gfib env1 gtp1 ltl1 in
       equate_gtele gfib0 gfib1
     | _ ->
-      M.throw UnequalTypes
+      G.throw UnequalTypes

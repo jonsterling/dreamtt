@@ -1,112 +1,115 @@
 open Basis
 open Syntax
+open Effect
 
 exception Impossible
 
-module M = Effect.G
-module StringMapUtil = Monad.MapUtil (M) (StringMap)
-open Monad.Notation (M)
-include M
+module LStringMapUtil = Monad.MapUtil (L) (StringMap)
 
-
-let rec eval env : ltm -> gtm m =
+let rec eval : ltm -> gtm lm =
+  let open Monad.Notation (L) in
   function
   | LLam (gfam, ltm) ->
-    ret @@ GLam (gfam, (ltm, env))
+    let+ env = L.env in
+    GLam (gfam, (ltm, env))
   | LVar ix ->
-    ret @@ Env.proj env ix
-  | LTt -> ret GTt
-  | LFf -> ret GFf
+    let+ env = L.env in
+    Env.proj env ix
+  | LTt -> L.ret GTt
+  | LFf -> L.ret GFf
   | LApp (ltm0, ltm1) ->
-    let* gtm0 = eval env ltm0 in
-    let* gtm1 = eval env ltm1 in
-    gapp gtm0 gtm1
+    let* gtm0 = eval ltm0 in
+    let* gtm1 = eval ltm1 in
+    L.global @@ gapp gtm0 gtm1
   | LProj (lbl, ltm) ->
-    let* gtm = eval env ltm in
-    gproj lbl gtm
+    let* gtm = eval ltm in
+    L.global @@ gproj lbl gtm
   | LRcd (lbls, gtele, lmap) ->
-    let+ gmap = StringMapUtil.flat_map (eval env) lmap in
+    let+ gmap = LStringMapUtil.flat_map eval lmap in
     GRcd (lbls, gtele, gmap)
 
-
-and gapp gtm0 gtm1 : gtm m =
+and gapp gtm0 gtm1 : gtm gm =
   match gtm0 with
   | GLam (_, (ltm, tm_env)) ->
-    let tm_env = Env.append tm_env gtm1 in
-    eval tm_env ltm
+    G.local (Env.append tm_env gtm1) @@ eval ltm
   | GEta gneu ->
-    ret @@ GEta (GSnoc (gneu, GApp gtm1))
+    G.ret @@ GEta (GSnoc (gneu, GApp gtm1))
   | _ ->
-    throw Impossible
+    G.throw Impossible
 
 and gproj lbl gtm =
   match gtm with
   | GRcd (_, _, gmap) ->
     begin
       match StringMap.find_opt lbl gmap with
-      | Some gtm -> M.ret gtm
-      | None -> throw Impossible
+      | Some gtm -> G.ret gtm
+      | None -> G.throw Impossible
     end
   | GEta gneu ->
-    ret @@ GEta (GSnoc (gneu, GProj lbl))
+    G.ret @@ GEta (GSnoc (gneu, GProj lbl))
   | _ ->
-    throw Impossible
+    G.throw Impossible
 
-
-let rec eval_tp env : ltp -> gtp m =
+let rec eval_tp : ltp -> gtp lm =
+  let open Monad.Notation (L) in
   function
   | LPi (lbase, lfam) ->
-    let+ gbase = eval_tp env lbase in
+    let* gbase = eval_tp lbase in
+    let+ env = L.env in
     GPi (gbase, lfam, env)
   | LBool ->
-    ret GBool
+    L.ret GBool
   | LRcdTp (lbls, ltl) ->
-    let+ gtl = eval_tele env ltl in
+    let+ gtl = eval_tele ltl in
     GRcdTp (lbls, gtl)
 
-and eval_tele env : ltele -> gtele m =
+and eval_tele : ltele -> gtele lm =
+  let open Monad.Notation (L) in
   function
-  | LTlNil -> ret GTlNil
+  | LTlNil -> L.ret GTlNil
   | LTlCons (ltp, ltele) ->
-    let+ gtp = eval_tp env ltp in
+    let* gtp = eval_tp ltp in
+    let+ env = L.env in
     GTlCons (gtp, ltele, env)
 
 
 
 let rec tp_of_gtm =
   function
-  | GTt | GFf -> ret GBool
+  | GTt | GFf -> G.ret GBool
   | GLam (gfam, _) ->
-    ret @@ GPi gfam
+    G.ret @@ GPi gfam
   | GRcd (lbls, gtele, _) ->
-    ret @@ GRcdTp (lbls, gtele)
+    G.ret @@ GRcdTp (lbls, gtele)
   | GEta gneu ->
     tp_of_gneu gneu
 
 and tp_of_gneu =
+  let open Monad.Notation (G) in
   function
   | GVar (_, gtp) ->
-    ret gtp
+    G.ret gtp
   | GSnoc (gneu, gfrm) ->
     let* tp = tp_of_gneu gneu in
     match tp, gfrm with
     | GPi (_, lfam, env), GApp gtm ->
-      eval_tp (Env.append env gtm) lfam
+      G.local (Env.append env gtm) @@ eval_tp lfam
     | GRcdTp (lbls, gtl), GProj lbl ->
       tp_of_rcd_field lbls gtl lbl gneu
     | _ ->
-      raise Impossible
+      G.throw Impossible
+
 
 and tp_of_rcd_field lbls gtl lbl gneu =
+  let open Monad.Notation (G) in
   match lbls, gtl with
   | [], GTlNil ->
-    throw Impossible
+    G.throw Impossible
   | lbl' :: _, GTlCons (gtp, _, _) when lbl = lbl' ->
-    ret gtp
+    G.ret gtp
   | lbl' :: lbls, GTlCons (_, ltl, env) ->
     let gtm = GEta (GSnoc (gneu, GProj lbl')) in
-    let* gtl' = eval_tele (Env.append env gtm) ltl in
+    let* gtl' = G.local (Env.append env gtm) @@ eval_tele ltl in
     tp_of_rcd_field lbls gtl' lbl gneu
   | _ ->
-    throw Impossible
-
+    G.throw Impossible

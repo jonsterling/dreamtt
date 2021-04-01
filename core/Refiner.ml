@@ -1,52 +1,51 @@
 open Basis
-
 open Syntax
+open Effect
 
 exception TypeError
 
-module M = Effect.L
-open Monad.Notation (M)
+open Monad.Notation (L)
 
-type tp_rule = ltp M.m
-type chk_rule = gtp -> ltm M.m
-type syn_rule = gtm M.m
+type tp_rule = ltp L.m
+type chk_rule = gtp -> ltm L.m
+type syn_rule = gtm L.m
 
 let with_tp kont tp =
   kont tp tp
 
-let inst_tp_fam : ltp -> env -> gtm -> gtp M.m =
+let inst_tp_fam : ltp -> env -> gtm -> gtp G.m =
   fun lfam env gtm ->
   let envx = Env.append env gtm in
-  M.global @@ Eval.eval_tp envx lfam
+  G.local envx @@ Eval.eval_tp lfam
 
-let inst_tm_fam : ltm -> env -> gtm -> gtm M.m =
+let inst_tm_fam : ltm -> env -> gtm -> gtm G.m =
   fun lfam env gtm ->
   let envx = Env.append env gtm in
-  M.global @@ Eval.eval envx lfam
+  G.local envx @@ Eval.eval lfam
 
 
 let core =
-  M.ret
+  L.ret
 
 let bool : tp_rule =
-  M.ret LBool
+  L.ret LBool
 
 let tt : chk_rule =
   function
-  | GBool -> M.ret LTt
-  | _ -> M.throw TypeError
+  | GBool -> L.ret LTt
+  | _ -> L.throw TypeError
 
 let ff : chk_rule =
   function
-  | GBool -> M.ret LFf
-  | _ -> M.throw TypeError
+  | GBool -> L.ret LFf
+  | _ -> L.throw TypeError
 
 
 (* invariant: does not return unless the list of labels has no shadowing *)
-type tele_rule = (string list * ltele) M.m
+type tele_rule = (string list * ltele) L.m
 
 let tl_nil : tele_rule =
-  M.ret ([], LTlNil)
+  L.ret ([], LTlNil)
 
 let rec freshen lbl lbls =
   if List.mem lbl lbls then
@@ -56,22 +55,16 @@ let rec freshen lbl lbls =
 
 let tl_cons lbl tp_rule tele_rule =
   let* lbase = tp_rule in
-  let* gbase =
-    let* env = M.env in
-    M.global @@ Eval.eval_tp env lbase
-  in
-  M.bind_tm gbase @@ fun var ->
+  let* gbase = Eval.eval_tp lbase in
+  L.bind_tm gbase @@ fun var ->
   let+ lbls, lfam = tele_rule var in
   let lbl' = freshen lbl lbls in
   lbl' :: lbls, LTlCons (lbase, lfam)
 
 let pi (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
   let* lbase = base in
-  let* gbase =
-    let* env = M.env in
-    M.global @@ Eval.eval_tp env lbase
-  in
-  M.bind_tm gbase @@ fun var ->
+  let* gbase = Eval.eval_tp lbase in
+  L.bind_tm gbase @@ fun var ->
   let+ lfam = fam var in
   LPi (lbase, lfam)
 
@@ -84,61 +77,55 @@ let rcd_tp (tele : tele_rule) : tp_rule =
 let lam (bdy : gtm -> chk_rule) : chk_rule =
   function
   | GPi ((gbase, lfam, env) as gfam) ->
-    M.bind_tm gbase @@ fun var ->
-    let+ lbdy = bdy var @<< inst_tp_fam lfam env var in
+    L.bind_tm gbase @@ fun var ->
+    let+ lbdy = bdy var @<< L.global @@ inst_tp_fam lfam env var in
     LLam (gfam, lbdy)
   | _ ->
-    M.throw TypeError
+    L.throw TypeError
 
 let rcd (chk_map : chk_rule StringMap.t) : chk_rule =
   function
   | GRcdTp (lbls, gtl) ->
     let rec loop tmap lbls gtl =
       match lbls, gtl with
-      | [], GTlNil -> M.ret tmap
+      | [], GTlNil -> L.ret tmap
       | lbl :: lbls, GTlCons (gtp, ltl, tlenv) ->
         begin
           match StringMap.find_opt lbl chk_map with
           | Some chk_rule ->
             let* ltm = chk_rule gtp in
-            let* gtm =
-              let* env = M.env in
-              M.global @@ Eval.eval env ltm
-            in
-            let* gtl' = M.global @@ Eval.eval_tele (Env.append tlenv gtm) ltl in
+            let* gtm = Eval.eval ltm in
+            let* gtl' = L.global @@ G.local tlenv @@ L.append_tm gtm @@ Eval.eval_tele ltl in
             let tmap' = StringMap.add lbl ltm tmap in
             loop tmap' lbls gtl'
           | None ->
-            M.throw TypeError
+            L.throw TypeError
         end
       | _ ->
-        M.throw TypeError
+        L.throw TypeError
     in
     let* tmap = loop StringMap.empty lbls gtl in
-    M.ret @@ LRcd (lbls, gtl, tmap)
+    L.ret @@ LRcd (lbls, gtl, tmap)
   | _ ->
-    M.throw TypeError
+    L.throw TypeError
 
 let app (fn : syn_rule) (arg : chk_rule) : syn_rule =
   let* gtm0 = fn in
-  Eval.tp_of_gtm gtm0 |> M.global |>> function
+  Eval.tp_of_gtm gtm0 |> L.global |>> function
   | GPi (gbase, _, _) ->
     let* larg = arg gbase in
-    let* env = M.env in
-    M.global @@
-    let open Monad.Notation (Effect.G) in
-    let* gtm1 = Eval.eval env larg in
-    Eval.gapp gtm0 gtm1
+    let* gtm1 = Eval.eval larg in
+    L.global @@ Eval.gapp gtm0 gtm1
   | _ ->
-    M.throw TypeError
+    L.throw TypeError
 
 let proj lbl (syn_rule : syn_rule) : syn_rule =
   let* gtm = syn_rule in
-  Eval.tp_of_gtm gtm |> M.global |>> function
+  Eval.tp_of_gtm gtm |> L.global |>> function
   | GRcdTp (lbls, _) when List.mem lbl lbls ->
-    M.global @@ Eval.gproj lbl gtm
+    L.global @@ Eval.gproj lbl gtm
   | _ ->
-    M.throw TypeError
+    L.throw TypeError
 
 let fst (syn_rule : syn_rule) : syn_rule =
   proj "fst" syn_rule
@@ -166,35 +153,35 @@ let rec conv_ : gtm -> chk_rule =
   | GFf -> ff
   | GLam (_, (ltm, env)) ->
     lam @@ fun var gfib ->
-    let* gtm = inst_tm_fam ltm env var in
+    let* gtm = L.global @@ inst_tm_fam ltm env var in
     conv_ gtm gfib
   | GRcd (_, _, gmap) ->
     rcd @@ StringMap.map conv_ gmap
   | GEta gneu ->
     fun gtp ->
-      let* gtp' = M.global @@ Eval.tp_of_gneu gneu in
-      let* () = Equate.equate_gtp gtp gtp' in
+      let* gtp' = L.global @@ Eval.tp_of_gneu gneu in
+      let* () = L.global @@ Equate.equate_gtp gtp gtp' in
       conv_neu_ gneu
 
 
-and conv_neu_ : gneu -> ltm M.m =
+and conv_neu_ : gneu -> ltm L.m =
   function
   | GVar (lvl, _) ->
-    let+ env = M.env in
+    let+ env = L.env in
     let ix = Env.lvl_to_ix env lvl in
     LVar ix
 
   | GSnoc (gneu, gfrm) ->
     let* ltm = conv_neu_ gneu in
     match gfrm with
-    | GProj lbl -> M.ret @@ LProj (lbl, ltm)
+    | GProj lbl -> L.ret @@ LProj (lbl, ltm)
     | GApp gtm ->
-      Eval.tp_of_gneu gneu |> M.global |>> function
+      Eval.tp_of_gneu gneu |> L.global |>> function
       | GPi (gbase, _, _) ->
         let+ ltm' = conv_ gtm gbase in
         LApp (ltm, ltm')
       | _ ->
-        M.throw TypeError
+        L.throw TypeError
 
 let conv : syn_rule -> chk_rule =
   fun syn gtp ->

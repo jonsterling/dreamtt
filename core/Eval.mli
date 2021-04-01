@@ -1,13 +1,13 @@
 open Syntax
-open Effect.G
+open Effect
 
-val eval : env -> ltm -> gtm m
-val eval_tp : env -> ltp -> gtp m
-val eval_tele : env -> ltele -> gtele m
+val eval : ltm -> gtm lm
+val eval_tp : ltp -> gtp lm
+val eval_tele : ltele -> gtele lm
 
-val gapp : gtm -> gtm -> gtm m
-val gproj : string -> gtm -> gtm m
+val gapp : gtm -> gtm -> gtm gm
+val gproj : string -> gtm -> gtm gm
 
-val tp_of_gtm : gtm -> gtp m
-val tp_of_gneu : gneu -> gtp m
+val tp_of_gtm : gtm -> gtp gm
+val tp_of_gneu : gneu -> gtp gm
 
