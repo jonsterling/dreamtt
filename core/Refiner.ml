@@ -187,3 +187,8 @@ let conv : syn_rule -> chk_rule =
   fun syn gtp ->
   let* gtm = syn in
   conv_ gtm gtp
+
+
+let fail_tp exn = L.throw exn
+let fail_chk exn _ = L.throw exn
+let fail_syn exn = L.throw exn

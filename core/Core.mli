@@ -107,4 +107,12 @@ module Refiner : sig
   (** {1 Rule combinators} *)
 
   val with_tp : (tp -> chk_rule) -> chk_rule
+
+  (** {2 Failing rules}
+      The following rules will fail with an exception.
+  *)
+
+  val fail_tp : exn -> tp_rule
+  val fail_chk : exn -> chk_rule
+  val fail_syn : exn -> syn_rule
 end
