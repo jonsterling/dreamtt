@@ -43,6 +43,6 @@ end
 (** The distiller takes a core-language term and turns it into a source language code. *)
 module Distiller : sig
   include Monad.S
-  val run : string Core.Env.t -> 'a m -> 'a Error.M.m
+  val run : string Core.Env.t -> 'a m -> 'a
   val distill_ltm : Core.Syntax.ltm -> code m
 end
