@@ -100,7 +100,7 @@ module Refiner : sig
   val core : tm -> syn_rule
 
   (** The {i conversion rule} appears in the bidirectional setting as the
-      transition from syn_rulethesis to checking. *)
+      transition from synthesis to checking. *)
   val conv : syn_rule -> chk_rule
 
 
