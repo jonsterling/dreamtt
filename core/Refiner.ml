@@ -4,29 +4,12 @@ open Syntax
 
 exception TypeError
 
-module M = RefineM
+module M = Effect.L
 open Monad.Notation (M)
 
 type tp_rule = ltp M.m
 type chk_rule = gtp -> ltm M.m
 type syn_rule = gtm M.m
-
-let chk_rule_to_ltm (chk : chk_rule) gtp =
-  Error.M.run_exn @@ M.run Env.empty @@ chk gtp
-
-let tp_rule_to_ltp (tp : tp_rule) : ltp =
-  Error.M.run_exn @@ M.run Env.empty tp
-
-let run_chk_rule (chk : chk_rule) gtp =
-  Eval.run_exn @@ Eval.eval Env.empty @@
-  chk_rule_to_ltm chk gtp
-
-let run_tp_rule (tp : tp_rule) =
-  Eval.run_exn @@ Eval.eval_tp Env.empty @@
-  tp_rule_to_ltp tp
-
-let run_syn_rule syn =
-  Error.M.run_exn @@ M.run Env.empty syn
 
 let with_tp kont tp =
   kont tp tp
@@ -34,12 +17,12 @@ let with_tp kont tp =
 let inst_tp_fam : ltp -> env -> gtm -> gtp M.m =
   fun lfam env gtm ->
   let envx = Env.append env gtm in
-  M.lift_eval @@ Eval.eval_tp envx lfam
+  M.global @@ Eval.eval_tp envx lfam
 
 let inst_tm_fam : ltm -> env -> gtm -> gtm M.m =
   fun lfam env gtm ->
   let envx = Env.append env gtm in
-  M.lift_eval @@ Eval.eval envx lfam
+  M.global @@ Eval.eval envx lfam
 
 
 let core =
@@ -74,10 +57,10 @@ let rec freshen lbl lbls =
 let tl_cons lbl tp_rule tele_rule =
   let* lbase = tp_rule in
   let* gbase =
-    let* env = M.read in
-    M.lift_eval @@ Eval.eval_tp env lbase
+    let* env = M.env in
+    M.global @@ Eval.eval_tp env lbase
   in
-  M.scope gbase @@ fun var ->
+  M.bind_tm gbase @@ fun var ->
   let+ lbls, lfam = tele_rule var in
   let lbl' = freshen lbl lbls in
   lbl' :: lbls, LTlCons (lbase, lfam)
@@ -85,10 +68,10 @@ let tl_cons lbl tp_rule tele_rule =
 let pi (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
   let* lbase = base in
   let* gbase =
-    let* env = M.read in
-    M.lift_eval @@ Eval.eval_tp env lbase
+    let* env = M.env in
+    M.global @@ Eval.eval_tp env lbase
   in
-  M.scope gbase @@ fun var ->
+  M.bind_tm gbase @@ fun var ->
   let+ lfam = fam var in
   LPi (lbase, lfam)
 
@@ -101,7 +84,7 @@ let rcd_tp (tele : tele_rule) : tp_rule =
 let lam (bdy : gtm -> chk_rule) : chk_rule =
   function
   | GPi ((gbase, lfam, env) as gfam) ->
-    M.scope gbase @@ fun var ->
+    M.bind_tm gbase @@ fun var ->
     let+ lbdy = bdy var @<< inst_tp_fam lfam env var in
     LLam (gfam, lbdy)
   | _ ->
@@ -119,10 +102,10 @@ let rcd (chk_map : chk_rule StringMap.t) : chk_rule =
           | Some chk_rule ->
             let* ltm = chk_rule gtp in
             let* gtm =
-              let* env = M.read in
-              M.lift_eval @@ Eval.eval env ltm
+              let* env = M.env in
+              M.global @@ Eval.eval env ltm
             in
-            let* gtl' = M.lift_eval @@ Eval.eval_tele (Env.append tlenv gtm) ltl in
+            let* gtl' = M.global @@ Eval.eval_tele (Env.append tlenv gtm) ltl in
             let tmap' = StringMap.add lbl ltm tmap in
             loop tmap' lbls gtl'
           | None ->
@@ -138,12 +121,12 @@ let rcd (chk_map : chk_rule StringMap.t) : chk_rule =
 
 let app (fn : syn_rule) (arg : chk_rule) : syn_rule =
   let* gtm0 = fn in
-  Eval.tp_of_gtm gtm0 |> M.lift_eval |>> function
+  Eval.tp_of_gtm gtm0 |> M.global |>> function
   | GPi (gbase, _, _) ->
     let* larg = arg gbase in
-    let* env = M.read in
-    M.lift_eval @@
-    let open Monad.Notation (Eval) in
+    let* env = M.env in
+    M.global @@
+    let open Monad.Notation (Effect.G) in
     let* gtm1 = Eval.eval env larg in
     Eval.gapp gtm0 gtm1
   | _ ->
@@ -151,9 +134,9 @@ let app (fn : syn_rule) (arg : chk_rule) : syn_rule =
 
 let proj lbl (syn_rule : syn_rule) : syn_rule =
   let* gtm = syn_rule in
-  Eval.tp_of_gtm gtm |> M.lift_eval |>> function
+  Eval.tp_of_gtm gtm |> M.global |>> function
   | GRcdTp (lbls, _) when List.mem lbl lbls ->
-    M.lift_eval @@ Eval.gproj lbl gtm
+    M.global @@ Eval.gproj lbl gtm
   | _ ->
     M.throw TypeError
 
@@ -189,7 +172,7 @@ let rec conv_ : gtm -> chk_rule =
     rcd @@ StringMap.map conv_ gmap
   | GEta gneu ->
     fun gtp ->
-      let* gtp' = M.lift_eval @@ Eval.tp_of_gneu gneu in
+      let* gtp' = M.global @@ Eval.tp_of_gneu gneu in
       let* () = Equate.equate_gtp gtp gtp' in
       conv_neu_ gneu
 
@@ -197,7 +180,7 @@ let rec conv_ : gtm -> chk_rule =
 and conv_neu_ : gneu -> ltm M.m =
   function
   | GVar (lvl, _) ->
-    let+ env = M.read in
+    let+ env = M.env in
     let ix = Env.lvl_to_ix env lvl in
     LVar ix
 
@@ -206,7 +189,7 @@ and conv_neu_ : gneu -> ltm M.m =
     match gfrm with
     | GProj lbl -> M.ret @@ LProj (lbl, ltm)
     | GApp gtm ->
-      Eval.tp_of_gneu gneu |> M.lift_eval |>> function
+      Eval.tp_of_gneu gneu |> M.global |>> function
       | GPi (gbase, _, _) ->
         let+ ltm' = conv_ gtm gbase in
         LApp (ltm, ltm')

@@ -44,3 +44,9 @@ let test_closed thy phi =
 let test thy cx phi =
   let thy' = List.fold_left ext thy cx in
   test_closed thy' phi
+
+type update =
+  [`Ext of prop]
+
+let update (`Ext phi) thy =
+  ext thy phi

@@ -11,7 +11,8 @@ open Basis
 module Env = Env
 module Syntax = Syntax
 module Equate = Equate
-module Local = Local
+module Effect = Effect
+open Effect
 
 (** {2 Proof abstraction boundary} *)
 
@@ -26,7 +27,7 @@ end
 type tp = Syntax.gtp Proof.t
 type tm = Syntax.gtm Proof.t
 
-val tp_of_tm : tm -> tp Eval.m
+val tp_of_tm : tm -> tp G.m
 
 (** {2 Inspecting types} *)
 
@@ -59,25 +60,6 @@ module Refiner : sig
   type chk_rule
   type syn_rule
   type tele_rule
-
-  (** {2 Runners} *)
-
-  (** A {!syn_rule} refinement script can be executed to yield an abstract term;
-      when it returns a value, that value is guaranteed to be well-typed. *)
-  val run_syn_rule : syn_rule -> tm
-
-  (** A {!chk_rule} refinement script may be executed relative to a given type;
-      when it returns a value, that value is guaranteed to have the type given. *)
-  val run_chk_rule : chk_rule -> tp -> tm
-
-  (** A {!tp_rule} refinement script may be executed to yield a type;
-      when it returns a value, that value is guaranteed to be a valid type. *)
-  val run_tp_rule : tp_rule -> tp
-
-
-  (** It is also useful to read a local term off a refinement script. *)
-  val tp_rule_to_ltp : tp_rule -> Syntax.ltp
-  val chk_rule_to_ltm : chk_rule -> tp -> Syntax.ltm
 
   (** {1 Inference rules} *)
 

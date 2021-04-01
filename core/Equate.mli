@@ -2,5 +2,7 @@
 
 exception UnequalTypes
 
-val equate_gtp : Syntax.gtp -> Syntax.gtp -> unit Local.M.m
-val equate_gtele : Syntax.gtele -> Syntax.gtele -> unit Local.M.m
+open Effect
+
+val equate_gtp : Syntax.gtp -> Syntax.gtp -> unit L.m
+val equate_gtele : Syntax.gtele -> Syntax.gtele -> unit L.m

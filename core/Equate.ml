@@ -3,7 +3,7 @@ open Syntax
 
 exception UnequalTypes
 
-module M = RefineM
+module M = Effect.L
 
 let rec equate_gtp : gtp -> gtp -> unit M.m =
   let open Monad.Notation (M) in
@@ -26,11 +26,11 @@ and equate_gtele : gtele -> gtele -> unit M.m =
     | GTlNil, GTlNil -> M.ret ()
     | GTlCons (gtp0, ltl0, env0), GTlCons (gtp1, ltl1, env1) ->
       let* () = equate_gtp gtp0 gtp1 in
-      M.scope gtp0 @@ fun x ->
+      M.bind_tm gtp0 @@ fun x ->
       let envx0 = Env.append env0 x in
       let envx1 = Env.append env1 x in
-      let* gfib0 = M.lift_eval @@ Eval.eval_tele envx0 ltl0 in
-      let* gfib1 = M.lift_eval @@ Eval.eval_tele envx1 ltl1 in
+      let* gfib0 = M.global @@ Eval.eval_tele envx0 ltl0 in
+      let* gfib1 = M.global @@ Eval.eval_tele envx1 ltl1 in
       equate_gtele gfib0 gfib1
     | _ ->
       M.throw UnequalTypes

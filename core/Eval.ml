@@ -3,13 +3,10 @@ open Syntax
 
 exception Impossible
 
-module M = Error.M
+module M = Effect.G
 module StringMapUtil = Monad.MapUtil (M) (StringMap)
 open Monad.Notation (M)
 include M
-
-
-let run_exn = M.run_exn
 
 
 let rec eval env : ltm -> gtm m =
