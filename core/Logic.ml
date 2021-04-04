@@ -21,11 +21,11 @@ let ext thy phi =
   | Inconsistent -> Inconsistent
   | Consistent {true_vars} ->
     match phi with
-    | PropVar x ->
+    | PVar x ->
       Consistent {true_vars = VarSet.add x true_vars}
-    | Top ->
+    | PTop ->
       thy
-    | Bot ->
+    | PBot ->
       Inconsistent
 
 let consistency =
@@ -38,9 +38,9 @@ let test_closed thy phi =
   | Inconsistent -> true
   | Consistent {true_vars} ->
     match phi with
-    | PropVar x -> VarSet.mem x true_vars
-    | Top -> true
-    | Bot -> false
+    | PVar x -> VarSet.mem x true_vars
+    | PTop -> true
+    | PBot -> false
 
 let test thy cx phi =
   let thy' = List.fold_left ext thy cx in

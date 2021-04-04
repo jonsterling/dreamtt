@@ -18,6 +18,13 @@ open Basis
     and {!LRcd} for instance).
 *)
 
+(** {2 Logical layer} *)
+type prop =
+  | PVar of Env.lvl
+  | PTop
+  | PBot
+
+
 (** {2 Representation of types} *)
 
 type ltp =
@@ -85,11 +92,6 @@ and ('b, 'a) glued = Gl of {supp : prop; gtp : gtp; base : 'b; part : 'a; env : 
 
 and 'a part = Prt of {supp : prop; part : 'a; env : env}
 
-and prop =
-  | PropVar of Env.lvl
-  | Top
-  | Bot
-
 and env = [`Tm of gtm | `Tp of gtp] Env.t
 
 
@@ -131,7 +133,7 @@ let glued_to_part : ('b, 'a) glued -> 'a part =
 (** Construct a stable glued term, i.e. one form whom the base is nowhere unstable. *)
 let stable_glued : gtp -> 'b -> ('b, ltm) glued =
   fun gtp base ->
-  Gl {supp = Bot; gtp; base; part = LAbort; env = Env.empty}
+  Gl {supp = PBot; gtp; base; part = LAbort; env = Env.empty}
 
 (** {3 Restricting to partial elements} *)
 
@@ -171,11 +173,11 @@ let gtm_bdry : gtm -> ltm part =
   | Glued glued ->
     glued_to_part glued
   | gtm ->
-    gtm_to_part Bot GAbort
+    gtm_to_part PBot GAbort
 
 let gtp_bdry : gtp -> ltp part =
   function
   | gtp ->
-    gtp_to_part Bot GAbortTp
+    gtp_to_part PBot GAbortTp
 
 
