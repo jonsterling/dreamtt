@@ -127,6 +127,20 @@ let proj lbl (syn_rule : syn_rule) : syn_rule =
   | _ ->
     L.throw TypeError
 
+let ext_in (chk_rule : chk_rule) : chk_rule =
+  function
+  | GExtTp (gtp, Prt part) ->
+    let* ltm = chk_rule gtp in
+    let* () =
+      L.scope_thy (`Ext part.supp) @@
+      let* gtm = Eval.eval ltm in
+      let* gtm' = Eval.eval part.part in
+      Equate.equate_gtm gtp gtm gtm'
+    in
+    failwith ""
+  | _ ->
+    L.throw TypeError
+
 let fst (syn_rule : syn_rule) : syn_rule =
   proj "fst" syn_rule
 
@@ -161,6 +175,8 @@ let rec conv_ : gtm -> chk_rule =
     lam @@ fun var gfib ->
     let* gtm = L.global @@ inst_tm_fam ltm env var in
     conv_ gtm gfib
+  | GExtIn (_, _, gtm) ->
+    ext_in (conv_ gtm)
   | GRcd (_, _, gmap) ->
     rcd @@ StringMap.map conv_ gmap
   | Glued glued ->
@@ -189,12 +205,16 @@ and conv_neu_ : gneu -> ltm L.m =
   | GSnoc (gneu, gfrm) ->
     let* ltm = conv_neu_ gneu in
     match gfrm with
-    | GProj lbl -> L.ret @@ LProj (lbl, ltm)
+    | GProj lbl ->
+      L.ret @@ LProj (lbl, ltm)
     | GApp arg ->
       let* ltm = conv_neu_ gneu in
       let tp_arg = tp_of_gtm arg in
-      let* larg = conv_ arg tp_arg in
-      L.ret @@ LApp (ltm, larg)
+      let+ larg = conv_ arg tp_arg in
+      LApp (ltm, larg)
+    | GExtOut ->
+      let+ ltm = conv_neu_ gneu in
+      LExtOut ltm
 
 let conv : syn_rule -> chk_rule =
   fun syn gtp ->

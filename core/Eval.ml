@@ -16,6 +16,19 @@ struct
 
   module LStringMapUtil = Monad.MapUtil (L) (StringMap)
 
+  let eval_prop : lprop -> gprop lm =
+    function
+    | PTop -> L.ret PTop
+    | PBot -> L.ret PBot
+    | PVar ix ->
+      let* env = L.env in
+      begin
+        match Env.proj env ix with
+        | `Prop x -> L.ret x
+        | _ -> L.throw Impossible
+      end
+
+
   let rec eval : ltm -> gtm lm =
     fun ltm ->
       match ltm with
@@ -41,6 +54,9 @@ struct
       | LRcd (lbls, gtele, lmap) ->
         let+ gmap = LStringMapUtil.flat_map eval lmap in
         GRcd (lbls, gtele, gmap)
+      | LExtOut ltm ->
+        let* gtm = eval ltm in
+        L.global @@ gext_out gtm
       | LAbort ->
         L.ret GAbort
 
@@ -50,13 +66,24 @@ struct
       let* gbase = eval_tp lbase in
       let+ env = L.env in
       GPi (gbase, lfam, env)
-    | LBool ->
-      L.ret GBool
+
     | LRcdTp (lbls, ltl) ->
       let+ gtl = eval_tele ltl in
       GRcdTp (lbls, gtl)
+
+    | LExtTp (ltp, lprop, part) ->
+      let* gtp = eval_tp ltp in
+      let* gprop = eval_prop lprop in
+      let+ env = L.env in
+      let gpart = Prt {supp = gprop; part = part; env} in
+      GExtTp (gtp, gpart)
+
+    | LBool ->
+      L.ret GBool
+
     | LAbortTp ->
       L.ret GAbortTp
+
     | LTpVar ix ->
       let* env = L.env in
       begin
@@ -73,17 +100,6 @@ struct
       let+ env = L.env in
       GTlCons (gtp, ltele, env)
 
-  let eval_prop : lprop -> gprop lm =
-    function
-    | PTop -> L.ret PTop
-    | PBot -> L.ret PBot
-    | PVar ix ->
-      let* env = L.env in
-      begin
-        match Env.proj env ix with
-        | `Prop x -> L.ret x
-        | _ -> L.throw Impossible
-      end
 
 end
 and Compute : sig
@@ -92,6 +108,7 @@ and Compute : sig
 
   val gapp : gtm -> gtm -> gtm gm
   val gproj : string -> gtm -> gtm gm
+  val gext_out : gtm -> gtm gm
 end =
 struct
   open Eval
@@ -177,6 +194,17 @@ struct
     | _ ->
       G.throw Impossible
 
+  and gext_out gtm =
+    guard ~abort:GAbort @@
+    match gtm with
+    | GExtIn (_, _, gtm) ->
+      G.ret gtm
+    | Glued glued ->
+      let+ glued' = gext_out_glued glued in
+      Glued glued'
+    | _ ->
+      G.throw Impossible
+
   and gapp_glued (Gl glued) arg =
     whnf_tp glued.gtp |>> function
     | GPi (gtp, lfam, env) ->
@@ -202,6 +230,17 @@ struct
       let base = GSnoc (glued.base, GProj lbl) in
       let part, env = LProj (lbl, glued.part), glued.env in
       Gl {gtp; base; supp; part; env}
+    | _ ->
+      G.throw Impossible
+
+  and gext_out_glued (Gl glued) =
+    whnf_tp glued.gtp |>>
+    function
+    | GExtTp (gtp, _) ->
+      let supp = glued.supp in
+      let base = GSnoc (glued.base, GExtOut) in
+      let part, env = LExtOut glued.part, glued.env in
+      G.ret @@ Gl {gtp; base; supp; part; env}
     | _ ->
       G.throw Impossible
 end

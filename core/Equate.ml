@@ -55,6 +55,8 @@ and equate_gtm : gtp -> gtm -> gtm -> unit L.m =
     equate_fun gbase lfam env gtm0 gtm1
   | GRcdTp (lbls, gtl) ->
     equate_rcd lbls gtl gtm0 gtm1
+  | GExtTp (gtp, _) ->
+    equate_ext gtp gtm0 gtm1
   | GBool ->
     equate_base gtm0 gtm1
   | GAbortTp ->
@@ -93,3 +95,8 @@ and equate_rcd lbls gtl gr0 gr1 =
       L.throw Impossible
   in
   loop lbls gtl
+
+and equate_ext gtp gtm0 gtm1 =
+  let* gout0 = L.global @@ Eval.gext_out gtm0 in
+  let* gout1 = L.global @@ Eval.gext_out gtm1 in
+  equate_gtm gtp gout0 gout1
