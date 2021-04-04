@@ -82,9 +82,14 @@ and gfrm =
     {!glued.part}.
 *)
 
-and ('b, 'a) glued = Gl of {supp : Logic.prop; tp : gtp; base : 'b; part : 'a; env : env}
+and ('b, 'a) glued = Gl of {supp : prop; tp : gtp; base : 'b; part : 'a; env : env}
 
-and 'a part = Prt of {supp : Logic.prop; part : 'a; env : env}
+and 'a part = Prt of {supp : prop; part : 'a; env : env}
+
+and prop =
+  | PropVar of Env.lvl
+  | Top
+  | Bot
 
 and env = [`Tm of gtm | `Tp of gtp] Env.t
 
@@ -127,12 +132,12 @@ let glued_to_part : ('b, 'a) glued -> 'a part =
 (** Construct a stable glued term, i.e. one form whom the base is nowhere unstable. *)
 let stable_glued : gtp -> 'b -> ('b, ltm) glued =
   fun gtp base->
-  Gl {supp = Prop.bot; tp = gtp; base; part = LAbort; env = Env.empty}
+  Gl {supp = Bot; tp = gtp; base; part = LAbort; env = Env.empty}
 
 (** {3 Restricting to partial elements} *)
 
 (** Restrict a total term to a partial term. *)
-let gtm_to_part : Logic.prop -> gtm -> ltm part =
+let gtm_to_part : prop -> gtm -> ltm part =
   fun supp gtm ->
   let part, env =
     let env0 = Env.empty in
@@ -144,7 +149,7 @@ let gtm_to_part : Logic.prop -> gtm -> ltm part =
   Prt {supp; part; env}
 
 (** Restrict a total type to a partial type. *)
-let gtp_to_part : Logic.prop -> gtp -> ltp part =
+let gtp_to_part : prop -> gtp -> ltp part =
   fun supp gtp ->
   let part, env =
     let env0 = Env.empty in
@@ -167,11 +172,11 @@ let gtm_bdry : gtm -> ltm part =
   | Glued glued ->
     glued_to_part glued
   | gtm ->
-    gtm_to_part Prop.bot GAbort
+    gtm_to_part Bot GAbort
 
 let gtp_bdry : gtp -> ltp part =
   function
   | gtp ->
-    gtp_to_part Prop.bot GAbortTp
+    gtp_to_part Bot GAbortTp
 
 

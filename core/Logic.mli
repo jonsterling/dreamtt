@@ -1,4 +1,4 @@
-type prop = [`L of int] Prop.t
+type prop = Syntax.prop
 
 type thy
 

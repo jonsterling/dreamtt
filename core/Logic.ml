@@ -1,12 +1,13 @@
 module Var =
 struct
-  type t = [`L of int]
+  type t = Env.lvl
   let compare = compare
 end
 
 module VarSet = Set.Make (Var)
 
-type prop = Var.t Prop.t
+type prop = Syntax.prop
+open Syntax
 
 type thy =
   | Consistent of {true_vars : VarSet.t}
@@ -20,11 +21,11 @@ let ext thy phi =
   | Inconsistent -> Inconsistent
   | Consistent {true_vars} ->
     match phi with
-    | Prop.Var x ->
+    | PropVar x ->
       Consistent {true_vars = VarSet.add x true_vars}
-    | Prop.Prop Top ->
+    | Top ->
       thy
-    | Prop.Prop Bot ->
+    | Bot ->
       Inconsistent
 
 let consistency =
@@ -37,9 +38,9 @@ let test_closed thy phi =
   | Inconsistent -> true
   | Consistent {true_vars} ->
     match phi with
-    | Prop.Var x -> VarSet.mem x true_vars
-    | Prop.Prop Top -> true
-    | Prop.Prop Bot -> false
+    | PropVar x -> VarSet.mem x true_vars
+    | Top -> true
+    | Bot -> false
 
 let test thy cx phi =
   let thy' = List.fold_left ext thy cx in
