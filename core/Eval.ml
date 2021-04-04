@@ -4,8 +4,6 @@ open Effect
 
 exception Impossible
 
-module LStringMapUtil = Monad.MapUtil (L) (StringMap)
-
 module rec Eval : sig
   val eval : ltm -> gtm lm
   val eval_tp : ltp -> gtp lm
@@ -15,12 +13,14 @@ struct
   open Compute
   open Monad.Notation (L)
 
+  module LStringMapUtil = Monad.MapUtil (L) (StringMap)
+
   let rec eval : ltm -> gtm lm =
     fun ltm ->
       match ltm with
       | LLam (gfam, ltm) ->
         let+ env = L.env in
-        GLam (gfam, (ltm, env))
+        GLam (gfam, ltm, env)
       | LVar ix ->
         let* env = L.env in
         begin
@@ -140,7 +140,7 @@ struct
   and gapp gtm0 gtm1 =
     guard ~abort:GAbort @@
     match gtm0 with
-    | GLam (_, (ltm, tm_env)) ->
+    | GLam (_, ltm, tm_env) ->
       G.local (Env.append tm_env @@ `Tm gtm1) @@ eval ltm
     | Glued glued ->
       let+ glued' = gapp_glued glued gtm1 in

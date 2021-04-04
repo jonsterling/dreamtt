@@ -157,7 +157,7 @@ let rec conv_ : gtm -> chk_rule =
   function
   | GTt -> tt
   | GFf -> ff
-  | GLam (_, (ltm, env)) ->
+  | GLam (_, ltm, env) ->
     lam @@ fun var gfib ->
     let* gtm = L.global @@ inst_tm_fam ltm env var in
     conv_ gtm gfib

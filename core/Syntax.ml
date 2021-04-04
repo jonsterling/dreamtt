@@ -60,7 +60,7 @@ and ltm =
 
 and gtm =
   | GTt | GFf
-  | GLam of gfam * (ltm * env)
+  | GLam of gfam * ltm * env
   | GRcd of string list * gtele * gtm StringMap.t
   | Glued of (gneu, ltm) glued
   | GAbort
@@ -111,7 +111,7 @@ let tp_head : gtp -> tp_head =
 let tp_of_gtm : gtm -> gtp =
   function
   | GTt | GFf -> GBool
-  | GLam (gfam, _) ->
+  | GLam (gfam, _, _) ->
     GPi gfam
   | GRcd (lbls, gtele, _) ->
     GRcdTp (lbls, gtele)
