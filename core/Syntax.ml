@@ -68,16 +68,16 @@ and gneu =
   | GVar of Env.lvl
   | GSnoc of gneu * gfrm
 
+and gfrm =
+  | GProj of string
+  | GApp of gtm
+
 and glued =
   {supp : Logic.prop;
    tp : gtp;
    base : gneu;
    part : ltm;
    env : env}
-
-and gfrm =
-  | GProj of string
-  | GApp of gtm
 
 and env = gtm Env.t
 
