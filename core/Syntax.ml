@@ -131,7 +131,7 @@ let glued_to_part : ('b, 'a) glued -> 'a part =
 
 (** Construct a stable glued term, i.e. one form whom the base is nowhere unstable. *)
 let stable_glued : gtp -> 'b -> ('b, ltm) glued =
-  fun gtp base->
+  fun gtp base ->
   Gl {supp = Bot; tp = gtp; base; part = LAbort; env = Env.empty}
 
 (** {3 Restricting to partial elements} *)
