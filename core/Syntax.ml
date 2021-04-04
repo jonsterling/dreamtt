@@ -68,13 +68,22 @@ and gtm =
 and gneu =
   | GVar of Env.lvl
   | GSnoc of gneu * gfrm
-  | GNeuAbort
 
 and gfrm =
   | GProj of string
   | GApp of gtm
 
+(** A glued term combines a total element {!glued.base} with a compatible
+    partial element
+    {!glued.part} under {!glued.supp}; the invariant is that when {!glued.supp}
+    is true, {!glued.base} shall have destabilized to carry no semantic
+    information.  The main use-case is when {!glued.base} is a neutral that
+    must compute under {!glued.supp} to the element determined by
+    {!glued.part}.
+*)
+
 and ('b, 'a) glued = Gl of {supp : Logic.prop; tp : gtp; base : 'b; part : 'a; env : env}
+
 and 'a part = Prt of {supp : Logic.prop; part : 'a; env : env}
 
 and env = [`Tm of gtm | `Tp of gtp] Env.t
@@ -93,12 +102,34 @@ let tp_head : gtp -> tp_head =
   | GAbortTp -> `Abort
 
 
+(** Project the type of a term: this is efficient and non-recursive. *)
+let tp_of_gtm : gtm -> gtp =
+  function
+  | GTt | GFf -> GBool
+  | GLam (gfam, _) ->
+    GPi gfam
+  | GRcd (lbls, gtele, _) ->
+    GRcdTp (lbls, gtele)
+  | Glued (Gl glued) ->
+    glued.tp
+  | GAbort ->
+    GAbortTp
+
+(** {3 Glued terms} *)
+
+
 (** Project the partial element from a glued term. *)
 let glued_to_part : ('b, 'a) glued -> 'a part =
   function
   | Gl {supp; part; env; _} ->
     Prt {supp; part; env}
 
+(** Construct a stable glued term, i.e. one form whom the base is nowhere unstable. *)
+let stable_glued : gtp -> 'b -> ('b, ltm) glued =
+  fun gtp base->
+  Gl {supp = Prop.bot; tp = gtp; base; part = LAbort; env = Env.empty}
+
+(** {3 Restricting to partial elements} *)
 
 (** Restrict a total term to a partial term. *)
 let gtm_to_part : Logic.prop -> gtm -> ltm part =
@@ -124,36 +155,23 @@ let gtp_to_part : Logic.prop -> gtp -> ltp part =
   in
   Prt {supp; part; env}
 
-(** Construct a stable glued term, i.e. one form whom the base is nowhere unstable. *)
-let stable_glued : gtp -> 'b -> ('b, ltm) glued =
-  fun gtp base->
-  Gl {supp = Prop.bot; tp = gtp; base; part = LAbort; env = Env.empty}
+(** {3 Projecting boundaries}
 
-(** Project the type of a term: this is efficient and non-recursive. *)
-let tp_of_gtm : gtm -> gtp =
-  function
-  | GTt | GFf -> GBool
-  | GLam (gfam, _) ->
-    GPi gfam
-  | GRcd (lbls, gtele, _) ->
-    GRcdTp (lbls, gtele)
-  | Glued (Gl glued) ->
-    glued.tp
-  | GAbort ->
-    GAbortTp
+    The following functions project the partial (terms, types) that a (term,
+    type) must compute to; when the input has a stable head constructor, the
+    empty partial element is returned.
+*)
 
-(** Project the partial element that a term must contingently compute to. *)
 let gtm_bdry : gtm -> ltm part =
   function
   | Glued glued ->
     glued_to_part glued
   | gtm ->
-    gtm_to_part Prop.top gtm
+    gtm_to_part Prop.bot GAbort
 
-(** Project the partial element that a type must contingently compute to. *)
 let gtp_bdry : gtp -> ltp part =
   function
   | gtp ->
-    gtp_to_part Prop.top gtp
+    gtp_to_part Prop.bot GAbortTp
 
 

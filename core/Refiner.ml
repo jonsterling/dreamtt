@@ -181,9 +181,6 @@ and conv_glued_ : (gneu, ltm) glued -> chk_rule =
 
 and conv_neu_ : gneu -> ltm L.m =
   function
-  | GNeuAbort ->
-    L.ret LAbort
-
   | GVar lvl ->
     let+ env = L.env in
     let ix = Env.lvl_to_ix env lvl in
