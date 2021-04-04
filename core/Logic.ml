@@ -6,8 +6,8 @@ end
 
 module VarSet = Set.Make (Var)
 
-type prop = Syntax.prop
 open Syntax
+type prop = gprop
 
 type thy =
   | Consistent of {true_vars : VarSet.t}

@@ -1,4 +1,4 @@
-type prop = Syntax.prop
+type prop = Syntax.gprop
 
 type thy
 

@@ -19,10 +19,14 @@ open Basis
 *)
 
 (** {2 Logical layer} *)
-type prop =
-  | PVar of Env.lvl
+
+type 'v prop =
+  | PVar of 'v
   | PTop
   | PBot
+
+type gprop = Env.lvl prop
+type lprop = Env.ix prop
 
 
 (** {2 Representation of types} *)
@@ -88,9 +92,9 @@ and gfrm =
     {!glued.part}.
 *)
 
-and ('b, 'a) glued = Gl of {supp : prop; gtp : gtp; base : 'b; part : 'a; env : env}
+and ('b, 'a) glued = Gl of {supp : gprop; gtp : gtp; base : 'b; part : 'a; env : env}
 
-and 'a part = Prt of {supp : prop; part : 'a; env : env}
+and 'a part = Prt of {supp : gprop; part : 'a; env : env}
 
 and env = [`Tm of gtm | `Tp of gtp] Env.t
 
@@ -138,7 +142,7 @@ let stable_glued : gtp -> 'b -> ('b, ltm) glued =
 (** {3 Restricting to partial elements} *)
 
 (** Restrict a total term to a partial term. *)
-let gtm_to_part : prop -> gtm -> ltm part =
+let gtm_to_part : gprop -> gtm -> ltm part =
   fun supp gtm ->
   let part, env =
     let env0 = Env.empty in
@@ -150,7 +154,7 @@ let gtm_to_part : prop -> gtm -> ltm part =
   Prt {supp; part; env}
 
 (** Restrict a total type to a partial type. *)
-let gtp_to_part : prop -> gtp -> ltp part =
+let gtp_to_part : gprop -> gtp -> ltp part =
   fun supp gtp ->
   let part, env =
     let env0 = Env.empty in
