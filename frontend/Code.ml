@@ -21,6 +21,7 @@ and rcode =
   | Lam of string * code
   | Pair of code * code
   | Rcd of code StringMap.t
+  | Abort
 
 (** [lcode] is a type of elimination forms. Included via {!Core} is the
     collection of all core-language terms; this embedding is used to crucial

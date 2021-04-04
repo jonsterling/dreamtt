@@ -10,12 +10,13 @@ open Basis
 
 module Env = Env
 module Syntax = Syntax
-module Theory = Theory
-module Local = Local
+module Equate = Equate
+module Logic = Logic
+module Effect = Effect
 
 (** {2 Proof abstraction boundary} *)
 
-(** We wrap the syntax in an abstraction boundary a la LCF. *)
+(** We wrap the syntax in an abstraction boundary as in LCF. *)
 
 module Proof :
 sig
@@ -26,11 +27,11 @@ end
 type tp = Syntax.gtp Proof.t
 type tm = Syntax.gtm Proof.t
 
-val tp_of_tm : tm -> tp Eval.m
+val tp_of_tm : tm -> tp
 
 (** {2 Inspecting types} *)
 
-type tp_head = [`Pi | `Rcd of string list | `Bool]
+type tp_head = [`Pi | `Rcd of string list | `Bool | `Abort]
 
 (** The head of a type can be exposed in order to guide the elaborator.  It is
     (surprisingly) unnecessary to expose any more data of a type to the
@@ -59,25 +60,6 @@ module Refiner : sig
   type chk_rule
   type syn_rule
   type tele_rule
-
-  (** {2 Runners} *)
-
-  (** A {!syn_rule} refinement script can be executed to yield an abstract term;
-      when it returns a value, that value is guaranteed to be well-typed. *)
-  val run_syn_rule : syn_rule -> tm
-
-  (** A {!chk_rule} refinement script may be executed relative to a given type;
-      when it returns a value, that value is guaranteed to have the type given. *)
-  val run_chk_rule : chk_rule -> tp -> tm
-
-  (** A {!tp_rule} refinement script may be executed to yield a type;
-      when it returns a value, that value is guaranteed to be a valid type. *)
-  val run_tp_rule : tp_rule -> tp
-
-
-  (** It is also useful to read a local term off a refinement script. *)
-  val tp_rule_to_ltp : tp_rule -> Syntax.ltp
-  val chk_rule_to_ltm : chk_rule -> tp -> Syntax.ltm
 
   (** {1 Inference rules} *)
 
@@ -110,6 +92,9 @@ module Refiner : sig
   val fst : syn_rule -> syn_rule
   val snd : syn_rule -> syn_rule
 
+  (** {2 Logical layer} *)
+  val chk_abort : chk_rule
+
 
   (** {2 Structural rules} *)
 
@@ -117,11 +102,19 @@ module Refiner : sig
   val core : tm -> syn_rule
 
   (** The {i conversion rule} appears in the bidirectional setting as the
-      transition from syn_rulethesis to checking. *)
+      transition from synthesis to checking. *)
   val conv : syn_rule -> chk_rule
 
 
   (** {1 Rule combinators} *)
 
   val with_tp : (tp -> chk_rule) -> chk_rule
+
+  (** {2 Failing rules}
+      The following rules will fail with an exception.
+  *)
+
+  val fail_tp : exn -> tp_rule
+  val fail_chk : exn -> chk_rule
+  val fail_syn : exn -> syn_rule
 end

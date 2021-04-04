@@ -32,7 +32,7 @@ and elab_syn_code : code -> R.syn_rule m =
   | L lcode ->
     elab_syn_lcode lcode
   | R _ ->
-    raise ElabError
+    ret @@ R.fail_syn ElabError
 
 and elab_chk_rcode : rcode -> R.chk_rule m =
   function
@@ -48,9 +48,9 @@ and elab_chk_rcode : rcode -> R.chk_rule m =
     R.pair chk0 chk1
   | Rcd code_map ->
     let* chk_map = StringMapUtil.flat_map elab_chk_code code_map in
-    M.ret @@ R.rcd chk_map
+    ret @@ R.rcd chk_map
   | _ ->
-    raise ElabError
+    ret @@ R.fail_chk ElabError
 
 and elab_chk_lcode (lcode : lcode) : R.chk_rule m =
   commute R.with_tp @@ fun gtp ->
@@ -64,13 +64,15 @@ and elab_chk_lcode (lcode : lcode) : R.chk_rule m =
   | `Rcd lbls ->
     let rec loop chk_map lbls =
       match lbls with
-      | [] -> M.ret chk_map
+      | [] -> ret chk_map
       | lbl :: lbls ->
         let* chk = elab_chk_lcode @@ Proj (lbl, L (lcode)) in
         loop (StringMap.add lbl chk chk_map) lbls
     in
     let+ chk_map = loop StringMap.empty lbls in
     R.rcd chk_map
+  | `Abort ->
+    ret @@ R.chk_abort
 
 and elab_syn_lcode : lcode -> R.syn_rule m =
   function
@@ -98,7 +100,7 @@ and elab_tp_code : code -> R.tp_rule m =
   | R rcode ->
     elab_tp_rcode rcode
   | _ ->
-    raise ElabError
+    ret @@ R.fail_tp ElabError
 
 and elab_tp_rcode : rcode -> R.tp_rule m =
   function
@@ -118,7 +120,7 @@ and elab_tp_rcode : rcode -> R.tp_rule m =
     let+ tele = elab_tele_code tele_code in
     R.rcd_tp tele
   | _ ->
-    raise ElabError
+    ret @@ R.fail_tp ElabError
 
 and elab_tele_code : tele_code -> R.tele_rule m =
   function

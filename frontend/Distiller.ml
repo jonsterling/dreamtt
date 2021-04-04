@@ -2,20 +2,19 @@ open Basis
 open Core
 open Code
 
-module NameSupply : Local.Elt with type sort = unit and type elt = string =
-struct
-  type sort = unit
-  type elt = string
+module L = struct type local = string Env.t end
+module M = Reader.Make (L)
 
-  let var () lvl =
-    "x" ^ string_of_int (Env.int_of_lvl lvl)
-end
-
-module M = Local.Make (NameSupply)
 open Monad.Notation (M)
 module StringMapUtil = Monad.MapUtil (M) (StringMap)
 
 include M
+
+let scope k =
+  reader @@ fun env ->
+  let x = "x" ^ string_of_int @@ Env.int_of_lvl @@ Env.fresh env in
+  run (Env.append env x) @@ k x
+
 
 let rec distill_ltm : Syntax.ltm -> code m =
   function
@@ -31,7 +30,7 @@ let rec distill_ltm : Syntax.ltm -> code m =
     ret @@ R Ff
 
   | LLam (_, tm) ->
-    M.scope () @@ fun x ->
+    scope @@ fun x ->
     let+ code = distill_ltm tm in
     R (Lam (x, code))
 
@@ -47,3 +46,6 @@ let rec distill_ltm : Syntax.ltm -> code m =
   | LProj (lbl, tm) ->
     let+ code = distill_ltm tm in
     L (Proj (lbl, code))
+
+  | LAbort ->
+    ret @@ R Abort

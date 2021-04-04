@@ -1,9 +1,10 @@
-include Theory
+include Equate
 
 module Env = Env
-module Theory = Theory
+module Equate = Equate
 module Syntax = Syntax
-module Local = Local
+module Logic = Logic
+module Effect = Effect
 include Syntax
 
 module Proof =
@@ -15,6 +16,6 @@ end
 type tp = gtp Proof.t
 type tm = gtm Proof.t
 
-let tp_of_tm = Eval.tp_of_gtm
+let tp_of_tm = tp_of_gtm
 
 module Refiner = Refiner

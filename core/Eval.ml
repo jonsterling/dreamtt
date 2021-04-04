@@ -1,115 +1,185 @@
 open Basis
 open Syntax
+open Effect
 
 exception Impossible
 
-module M = Error.M
-module StringMapUtil = Monad.MapUtil (M) (StringMap)
-open Monad.Notation (M)
-include M
+module LStringMapUtil = Monad.MapUtil (L) (StringMap)
+
+let guard ~abort m =
+  let open Monad.Notation (G) in
+  let* thy = G.theory in
+  match Logic.consistency thy with
+  | `Consistent -> m
+  | `Inconsistent -> G.ret abort
 
 
-let run_exn = M.run_exn
-
-
-let rec eval env : ltm -> gtm m =
-  function
+let rec eval : ltm -> gtm lm =
+  fun ltm ->
+  let open Monad.Notation (L) in
+  match ltm with
   | LLam (gfam, ltm) ->
-    ret @@ GLam (gfam, (ltm, env))
+    let+ env = L.env in
+    GLam (gfam, (ltm, env))
   | LVar ix ->
-    ret @@ Env.proj env ix
-  | LTt -> ret GTt
-  | LFf -> ret GFf
+    let* env = L.env in
+    begin
+      match Env.proj env ix with
+      | `Tm x -> L.ret x
+      | _ -> L.throw Impossible
+    end
+  | LTt -> L.ret GTt
+  | LFf -> L.ret GFf
   | LApp (ltm0, ltm1) ->
-    let* gtm0 = eval env ltm0 in
-    let* gtm1 = eval env ltm1 in
-    gapp gtm0 gtm1
+    let* gtm0 = eval ltm0 in
+    let* gtm1 = eval ltm1 in
+    L.global @@ gapp gtm0 gtm1
   | LProj (lbl, ltm) ->
-    let* gtm = eval env ltm in
-    gproj lbl gtm
+    let* gtm = eval ltm in
+    L.global @@ gproj lbl gtm
   | LRcd (lbls, gtele, lmap) ->
-    let+ gmap = StringMapUtil.flat_map (eval env) lmap in
+    let+ gmap = LStringMapUtil.flat_map eval lmap in
     GRcd (lbls, gtele, gmap)
+  | LAbort ->
+    L.ret GAbort
 
-
-and gapp gtm0 gtm1 : gtm m =
+and gapp gtm0 gtm1 =
+  guard ~abort:GAbort @@
+  let open Monad.Notation (G) in
   match gtm0 with
   | GLam (_, (ltm, tm_env)) ->
-    let tm_env = Env.append tm_env gtm1 in
-    eval tm_env ltm
-  | GEta gneu ->
-    ret @@ GEta (GSnoc (gneu, GApp gtm1))
+    G.local (Env.append tm_env @@ `Tm gtm1) @@ eval ltm
+  | Glued glued ->
+    let+ glued' = gapp_glued glued gtm1 in
+    Glued glued'
   | _ ->
-    throw Impossible
+    G.throw Impossible
 
 and gproj lbl gtm =
+  let open Monad.Notation (G) in
+  guard ~abort:GAbort @@
   match gtm with
   | GRcd (_, _, gmap) ->
     begin
       match StringMap.find_opt lbl gmap with
-      | Some gtm -> M.ret gtm
-      | None -> throw Impossible
+      | Some gtm -> G.ret gtm
+      | None -> G.throw Impossible
     end
-  | GEta gneu ->
-    ret @@ GEta (GSnoc (gneu, GProj lbl))
+  | Glued glued ->
+    let+ glued' = gproj_glued lbl glued in
+    Glued glued'
   | _ ->
-    throw Impossible
+    G.throw Impossible
+
+and gapp_glued (Gl glued) arg =
+  let open Monad.Notation (G) in
+  whnf_tp glued.tp |>> function
+  | GPi (gtp, lfam, env) ->
+    let supp = glued.supp in
+    let base = GSnoc (glued.base, GApp arg) in
+    let part, env =
+      let env = glued.env in
+      let lvl = Env.fresh env in
+      let env = Env.append env @@ `Tm arg in
+      LApp (glued.part, LVar (Env.lvl_to_ix env lvl)), env
+    in
+    let+ tp = G.local env @@ L.append_tm arg @@ eval_tp lfam in
+    Gl {tp; base; supp; part; env}
+  | _ ->
+    G.throw Impossible
+
+and gproj_glued lbl (Gl glued) =
+  let open Monad.Notation (G) in
+  whnf_tp glued.tp |>>
+  function
+  | GRcdTp (lbls, gtl) ->
+    let+ tp = tp_of_rcd_field lbls gtl lbl (Glued (Gl glued)) in
+    let supp = glued.supp in
+    let base = GSnoc (glued.base, GProj lbl) in
+    let part, env = LProj (lbl, glued.part), glued.env in
+    Gl {tp; base; supp; part; env}
+  | _ ->
+    G.throw Impossible
 
 
-let rec eval_tp env : ltp -> gtp m =
+and eval_tp : ltp -> gtp lm =
+  let open Monad.Notation (L) in
   function
   | LPi (lbase, lfam) ->
-    let+ gbase = eval_tp env lbase in
+    let* gbase = eval_tp lbase in
+    let+ env = L.env in
     GPi (gbase, lfam, env)
   | LBool ->
-    ret GBool
+    L.ret GBool
   | LRcdTp (lbls, ltl) ->
-    let+ gtl = eval_tele env ltl in
+    let+ gtl = eval_tele ltl in
     GRcdTp (lbls, gtl)
+  | LAbortTp ->
+    L.ret GAbortTp
+  | LTpVar ix ->
+    let* env = L.env in
+    begin
+      match Env.proj env ix with
+      | `Tp x -> L.ret x
+      | _ -> L.throw Impossible
+    end
 
-and eval_tele env : ltele -> gtele m =
+and eval_tele : ltele -> gtele lm =
+  let open Monad.Notation (L) in
   function
-  | LTlNil -> ret GTlNil
+  | LTlNil -> L.ret GTlNil
   | LTlCons (ltp, ltele) ->
-    let+ gtp = eval_tp env ltp in
+    let* gtp = eval_tp ltp in
+    let+ env = L.env in
     GTlCons (gtp, ltele, env)
 
+and proj_part : gtm -> ltm part -> [`Done | `Step of gtm] gm =
+  let open Monad.Notation (G) in
+  fun gtm (Prt part) ->
+  let* thy = G.theory in
+  if Logic.test thy [] part.supp then
+    let+ gtm = G.local part.env @@ eval part.part in
+    `Step gtm
+  else
+    G.ret `Done
 
+and proj_tp_part : gtp -> ltp part -> [`Done | `Step of gtp] gm =
+  let open Monad.Notation (G) in
+  fun gtp (Prt part) ->
+    let* thy = G.theory in
+    if Logic.test thy [] part.supp then
+      let+ gtp = G.local part.env @@ eval_tp part.part in
+      `Step gtp
+    else
+      G.ret `Done
 
-let rec tp_of_gtm =
-  function
-  | GTt | GFf -> ret GBool
-  | GLam (gfam, _) ->
-    ret @@ GPi gfam
-  | GRcd (lbls, gtele, _) ->
-    ret @@ GRcdTp (lbls, gtele)
-  | GEta gneu ->
-    tp_of_gneu gneu
+and whnf : gtm -> gtm gm =
+  let open Monad.Notation (G) in
+  fun gtm ->
+    proj_part gtm @@ gtm_bdry gtm |>>
+    function
+    | `Done -> G.ret gtm
+    | `Step gtm -> whnf gtm
 
-and tp_of_gneu =
-  function
-  | GVar (_, gtp) ->
-    ret gtp
-  | GSnoc (gneu, gfrm) ->
-    let* tp = tp_of_gneu gneu in
-    match tp, gfrm with
-    | GPi (_, lfam, env), GApp gtm ->
-      eval_tp (Env.append env gtm) lfam
-    | GRcdTp (lbls, gtl), GProj lbl ->
-      tp_of_rcd_field lbls gtl lbl gneu
-    | _ ->
-      raise Impossible
+and whnf_tp : gtp -> gtp gm =
+  let open Monad.Notation (G) in
+  fun gtp ->
+    proj_tp_part gtp (gtp_bdry gtp) |>>
+    function
+    | `Done -> G.ret gtp
+    | `Step gtp -> whnf_tp gtp
 
-and tp_of_rcd_field lbls gtl lbl gneu =
+and tp_of_rcd_field lbls gtl lbl gtm =
+  guard ~abort:GAbortTp @@
+  let open Monad.Notation (G) in
   match lbls, gtl with
   | [], GTlNil ->
-    throw Impossible
+    G.throw Impossible
   | lbl' :: _, GTlCons (gtp, _, _) when lbl = lbl' ->
-    ret gtp
+    G.ret gtp
   | lbl' :: lbls, GTlCons (_, ltl, env) ->
-    let gtm = GEta (GSnoc (gneu, GProj lbl')) in
-    let* gtl' = eval_tele (Env.append env gtm) ltl in
-    tp_of_rcd_field lbls gtl' lbl gneu
+    let* gtm = gproj lbl' gtm in
+    let* gtl' = G.local env @@ L.append_tm gtm @@ eval_tele ltl in
+    tp_of_rcd_field lbls gtl' lbl gtm
   | _ ->
-    throw Impossible
-
+    G.throw Impossible

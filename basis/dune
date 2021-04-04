@@ -1,5 +1,6 @@
 (library
  (name Basis)
+ (libraries uuseg uuseg.string uutf)
  (flags
   (:standard -w -37))
  (public_name dreamtt.basis))

@@ -24,11 +24,14 @@ type ltp =
   | LPi of ltp * ltp
   | LRcdTp of string list * ltele
   | LBool
+  | LAbortTp
+  | LTpVar of Env.ix
 
 and gtp =
   | GPi of gfam
   | GRcdTp of string list * gtele
   | GBool
+  | GAbortTp
 
 and gfam = gtp * ltp * env
 
@@ -53,30 +56,127 @@ and ltm =
 
   | LRcd of string list * gtele * ltm StringMap.t
   | LProj of string * ltm
+  | LAbort
 
 and gtm =
   | GTt | GFf
   | GLam of gfam * (ltm * env)
   | GRcd of string list * gtele * gtm StringMap.t
-  | GEta of gneu
+  | Glued of (gneu, ltm) glued
+  | GAbort
 
 and gneu =
-  | GVar of Env.lvl * gtp
+  | GVar of Env.lvl
   | GSnoc of gneu * gfrm
 
 and gfrm =
   | GProj of string
   | GApp of gtm
 
-and env = gtm Env.t
+(** A glued term combines a total element {!glued.base} with a compatible
+    partial element
+    {!glued.part} under {!glued.supp}; the invariant is that when {!glued.supp}
+    is true, {!glued.base} shall have destabilized to carry no semantic
+    information.  The main use-case is when {!glued.base} is a neutral that
+    must compute under {!glued.supp} to the element determined by
+    {!glued.part}.
+*)
+
+and ('b, 'a) glued = Gl of {supp : prop; tp : gtp; base : 'b; part : 'a; env : env}
+
+and 'a part = Prt of {supp : prop; part : 'a; env : env}
+
+and prop =
+  | PropVar of Env.lvl
+  | Top
+  | Bot
+
+and env = [`Tm of gtm | `Tp of gtp] Env.t
 
 
 (** {1 Convenience } *)
 
-type tp_head = [`Pi | `Rcd of string list | `Bool]
+type tp_head = [`Pi | `Rcd of string list | `Bool | `Abort]
+
+(** Project the name of the head constructor of a type; useful for guiding elaboration. *)
 let tp_head : gtp -> tp_head =
   function
   | GBool -> `Pi
   | GPi _ -> `Bool
   | GRcdTp (lbls, _) -> `Rcd lbls
+  | GAbortTp -> `Abort
+
+
+(** Project the type of a term: this is efficient and non-recursive. *)
+let tp_of_gtm : gtm -> gtp =
+  function
+  | GTt | GFf -> GBool
+  | GLam (gfam, _) ->
+    GPi gfam
+  | GRcd (lbls, gtele, _) ->
+    GRcdTp (lbls, gtele)
+  | Glued (Gl glued) ->
+    glued.tp
+  | GAbort ->
+    GAbortTp
+
+(** {3 Glued terms} *)
+
+
+(** Project the partial element from a glued term. *)
+let glued_to_part : ('b, 'a) glued -> 'a part =
+  function
+  | Gl {supp; part; env; _} ->
+    Prt {supp; part; env}
+
+(** Construct a stable glued term, i.e. one form whom the base is nowhere unstable. *)
+let stable_glued : gtp -> 'b -> ('b, ltm) glued =
+  fun gtp base ->
+  Gl {supp = Bot; tp = gtp; base; part = LAbort; env = Env.empty}
+
+(** {3 Restricting to partial elements} *)
+
+(** Restrict a total term to a partial term. *)
+let gtm_to_part : prop -> gtm -> ltm part =
+  fun supp gtm ->
+  let part, env =
+    let env0 = Env.empty in
+    let lvl = Env.fresh env0 in
+    let env = Env.append env0 @@ `Tm gtm in
+    let ix = Env.lvl_to_ix env lvl in
+    LVar ix, env
+  in
+  Prt {supp; part; env}
+
+(** Restrict a total type to a partial type. *)
+let gtp_to_part : prop -> gtp -> ltp part =
+  fun supp gtp ->
+  let part, env =
+    let env0 = Env.empty in
+    let lvl = Env.fresh env0 in
+    let env = Env.append env0 @@ `Tp gtp in
+    let ix = Env.lvl_to_ix env lvl in
+    LTpVar ix, env
+  in
+  Prt {supp; part; env}
+
+(** {3 Projecting boundaries}
+
+    The following functions project the partial (terms, types) that a (term,
+    type) must compute to; when the input has a stable head constructor, the
+    empty partial element is returned.
+*)
+
+let gtm_bdry : gtm -> ltm part =
+  function
+  | Glued glued ->
+    glued_to_part glued
+  | gtm ->
+    gtm_to_part Bot GAbort
+
+let gtp_bdry : gtp -> ltp part =
+  function
+  | gtp ->
+    gtp_to_part Bot GAbortTp
+
 
