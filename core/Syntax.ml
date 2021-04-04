@@ -74,11 +74,10 @@ and gfrm =
   | GApp of gtm
 
 (** A glued term combines a total element {!glued.base} with a compatible
-    partial element
-    {!glued.part} under {!glued.supp}; the invariant is that when {!glued.supp}
-    is true, {!glued.base} shall have destabilized to carry no semantic
-    information.  The main use-case is when {!glued.base} is a neutral that
-    must compute under {!glued.supp} to the element determined by
+    partial element {!glued.part} under {!glued.supp}; the invariant is that
+    when {!glued.supp} is true, {!glued.base} shall have destabilized to carry
+    no semantic information.  The main use-case is when {!glued.base} is a
+    neutral that must compute under {!glued.supp} to the element determined by
     {!glued.part}.
 *)
 
