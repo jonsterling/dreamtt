@@ -166,7 +166,7 @@ let rec conv_ : gtm -> chk_rule =
   | GEta gneu ->
     fun gtp ->
       let* gtp' = L.global @@ Eval.tp_of_gneu gneu in
-      let* () = L.global @@ Equate.equate_gtp gtp gtp' in
+      let* () = Equate.equate_gtp gtp gtp' in
       conv_neu_ gneu
   | GAbort ->
     chk_abort
