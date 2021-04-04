@@ -13,7 +13,6 @@ module Syntax = Syntax
 module Equate = Equate
 module Logic = Logic
 module Effect = Effect
-open Effect
 
 (** {2 Proof abstraction boundary} *)
 
@@ -28,7 +27,7 @@ end
 type tp = Syntax.gtp Proof.t
 type tm = Syntax.gtm Proof.t
 
-val tp_of_tm : tm -> tp G.m
+val tp_of_tm : tm -> tp
 
 (** {2 Inspecting types} *)
 

@@ -25,6 +25,7 @@ type ltp =
   | LRcdTp of string list * ltele
   | LBool
   | LAbortTp
+  | LTpVar of Env.ix
 
 and gtp =
   | GPi of gfam
@@ -61,34 +62,92 @@ and gtm =
   | GTt | GFf
   | GLam of gfam * (ltm * env)
   | GRcd of string list * gtele * gtm StringMap.t
-  | Glued of glued
+  | Glued of (gneu, ltm) glued
   | GAbort
 
 and gneu =
   | GVar of Env.lvl
   | GSnoc of gneu * gfrm
+  | GNeuAbort
 
 and gfrm =
   | GProj of string
   | GApp of gtm
 
-and glued =
-  {supp : Logic.prop;
-   tp : gtp;
-   base : gneu;
-   part : ltm;
-   env : env}
+and ('b, 'a) glued = Gl of {supp : Logic.prop; tp : gtp; base : 'b; part : 'a; env : env}
+and 'a part = Prt of {supp : Logic.prop; part : 'a; env : env}
 
-and env = gtm Env.t
+and env = [`Tm of gtm | `Tp of gtp] Env.t
 
 
 (** {1 Convenience } *)
 
 type tp_head = [`Pi | `Rcd of string list | `Bool | `Abort]
+
 let tp_head : gtp -> tp_head =
   function
   | GBool -> `Pi
   | GPi _ -> `Bool
   | GRcdTp (lbls, _) -> `Rcd lbls
   | GAbortTp -> `Abort
+
+let glued_to_part : ('b, 'a) glued -> 'a part =
+  function
+  | Gl {supp; part; env; _} ->
+    Prt {supp; part; env}
+
+
+let gtm_to_part : gtm -> ltm part =
+  fun gtm ->
+  let supp = Prop.top in
+  let part, env =
+    let env0 = Env.empty in
+    let lvl = Env.fresh env0 in
+    let env = Env.append env0 @@ `Tm gtm in
+    let ix = Env.lvl_to_ix env lvl in
+    LVar ix, env
+  in
+  Prt {supp; part; env}
+
+let gtp_to_part : gtp -> ltp part =
+  fun gtp ->
+  let supp = Prop.top in
+  let part, env =
+    let env0 = Env.empty in
+    let lvl = Env.fresh env0 in
+    let env = Env.append env0 @@ `Tp gtp in
+    let ix = Env.lvl_to_ix env lvl in
+    LTpVar ix, env
+  in
+  Prt {supp; part; env}
+
+
+let stable_glued : gtp -> 'b -> ('b, ltm) glued =
+  fun gtp base->
+  Gl {supp = Prop.bot; tp = gtp; base; part = LAbort; env = Env.empty}
+
+let tp_of_gtm : gtm -> gtp =
+  function
+  | GTt | GFf -> GBool
+  | GLam (gfam, _) ->
+    GPi gfam
+  | GRcd (lbls, gtele, _) ->
+    GRcdTp (lbls, gtele)
+  | Glued (Gl glued) ->
+    glued.tp
+  | GAbort ->
+    GAbortTp
+
+let gtm_bdry : gtm -> ltm part =
+  function
+  | Glued glued ->
+    glued_to_part glued
+  | gtm ->
+    gtm_to_part gtm
+
+let gtp_bdry : gtp -> ltp part =
+  function
+  | gtp ->
+    gtp_to_part gtp
+
 

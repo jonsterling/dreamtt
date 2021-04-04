@@ -3,12 +3,12 @@ open Syntax
 
 module E =
 struct
-  type local = {thy : Logic.thy; env : gtm Env.t}
+  type local = {thy : Logic.thy; env : [`Tm of gtm | `Tp of gtp] Env.t}
   let update_thy upd {thy; env} =
     {thy = Logic.update upd thy; env}
 
   let append_tm tm {thy; env} =
-    {thy; env = Env.append env tm}
+    {thy; env = Env.append env @@ `Tm tm}
 
   let set_env env {thy; _} =
     {thy; env}
@@ -45,7 +45,8 @@ struct
   let bind_tm gtp kont =
     let* e = env in
     let lvl = Env.fresh e in
-    let var = Glued {tp = gtp; base = GVar lvl; supp = Prop.bot; part = LAbort; env = Env.empty} in
+    let glued = stable_glued gtp @@ GVar lvl in
+    let var = Glued glued in
     locally (E.append_tm var) @@ kont var
 
   let append_tm gtm m =

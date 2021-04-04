@@ -20,17 +20,19 @@ let gfam_to_gtele gbase lfam env =
 
 let rec equate_gtp : gtp -> gtp -> unit L.m =
   fun gtp0 gtp1 ->
-    guard @@
-    match gtp0, gtp1 with
-    | GBool, GBool -> L.ret ()
-    | GPi (gbase0, lfam0, env0), GPi (gbase1, lfam1, env1) ->
-      let gtl0 = gfam_to_gtele gbase0 lfam0 env0 in
-      let gtl1 = gfam_to_gtele gbase1 lfam1 env1 in
-      equate_gtele gtl0 gtl1
-    | GRcdTp (lbls0, gtl0), GRcdTp (lbls1, gtl1) when lbls0 = lbls1 ->
-      equate_gtele gtl0 gtl1
-    | _ ->
-      L.throw UnequalTypes
+  guard @@
+  let* gtp0 = L.global @@ Eval.whnf_tp gtp0 in
+  let* gtp1 = L.global @@ Eval.whnf_tp gtp0 in
+  match gtp0, gtp1 with
+  | GBool, GBool -> L.ret ()
+  | GPi (gbase0, lfam0, env0), GPi (gbase1, lfam1, env1) ->
+    let gtl0 = gfam_to_gtele gbase0 lfam0 env0 in
+    let gtl1 = gfam_to_gtele gbase1 lfam1 env1 in
+    equate_gtele gtl0 gtl1
+  | GRcdTp (lbls0, gtl0), GRcdTp (lbls1, gtl1) when lbls0 = lbls1 ->
+    equate_gtele gtl0 gtl1
+  | _ ->
+    L.throw UnequalTypes
 
 and equate_gtele : gtele -> gtele -> unit L.m =
   fun gtl0 gtl1 ->
@@ -46,17 +48,21 @@ and equate_gtele : gtele -> gtele -> unit L.m =
       L.throw UnequalTypes
 
 and equate_gtm : gtp -> gtm -> gtm -> unit L.m =
+  fun gtp gtm0 gtm1 ->
+  L.global @@ Eval.whnf_tp gtp |>>
   function
   | GPi (gbase, lfam, env) ->
-    equate_fun gbase lfam env
+    equate_fun gbase lfam env gtm0 gtm1
   | GRcdTp (lbls, gtl) ->
-    equate_rcd lbls gtl
+    equate_rcd lbls gtl gtm0 gtm1
   | GBool ->
-    equate_base
+    equate_base gtm0 gtm1
   | GAbortTp ->
-    fun _ _ -> L.ret ()
+    L.ret ()
 
 and equate_base gtm0 gtm1 =
+  let* gtm0 = L.global @@ Eval.whnf gtm0 in
+  let* gtm1 = L.global @@ Eval.whnf gtm1 in
   match gtm0, gtm1 with
   | GTt, GTt | GFf, GFf ->
     L.ret ()

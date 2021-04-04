@@ -16,6 +16,6 @@ end
 type tp = gtp Proof.t
 type tm = gtm Proof.t
 
-let tp_of_tm = Eval.tp_of_gtm
+let tp_of_tm = tp_of_gtm
 
 module Refiner = Refiner

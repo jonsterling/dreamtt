@@ -19,7 +19,7 @@ sig
   include EffectOps.G with type 'a m := 'a m
 
   (** Execute with a local variable environment. *)
-  val local : gtm Env.t -> 'a lm -> 'a m
+  val local : [`Tm of gtm | `Tp of gtp] Env.t -> 'a lm -> 'a m
 end
 
 module L :

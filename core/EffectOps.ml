@@ -18,7 +18,7 @@ sig
   include G
 
   (** Access the local variable environment *)
-  val env : gtm Env.t m
+  val env : [`Tm of gtm | `Tp of gtp] Env.t m
 
   (** Bind a variable of a given type within a scope. *)
   val bind_tm : gtp -> (gtm -> 'a m) -> 'a m

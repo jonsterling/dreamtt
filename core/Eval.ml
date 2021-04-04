@@ -22,8 +22,12 @@ let rec eval : ltm -> gtm lm =
     let+ env = L.env in
     GLam (gfam, (ltm, env))
   | LVar ix ->
-    let+ env = L.env in
-    Env.proj env ix
+    let* env = L.env in
+    begin
+      match Env.proj env ix with
+      | `Tm x -> L.ret x
+      | _ -> L.throw Impossible
+    end
   | LTt -> L.ret GTt
   | LFf -> L.ret GFf
   | LApp (ltm0, ltm1) ->
@@ -44,7 +48,7 @@ and gapp gtm0 gtm1 =
   let open Monad.Notation (G) in
   match gtm0 with
   | GLam (_, (ltm, tm_env)) ->
-    G.local (Env.append tm_env gtm1) @@ eval ltm
+    G.local (Env.append tm_env @@ `Tm gtm1) @@ eval ltm
   | Glued glued ->
     let+ glued' = gapp_glued glued gtm1 in
     Glued glued'
@@ -67,32 +71,33 @@ and gproj lbl gtm =
   | _ ->
     G.throw Impossible
 
-and gapp_glued glued arg =
+and gapp_glued (Gl glued) arg =
   let open Monad.Notation (G) in
-  match glued.tp with
+  whnf_tp glued.tp |>> function
   | GPi (gtp, lfam, env) ->
     let supp = glued.supp in
     let base = GSnoc (glued.base, GApp arg) in
     let part, env =
       let env = glued.env in
       let lvl = Env.fresh env in
-      let env = Env.append env arg in
+      let env = Env.append env @@ `Tm arg in
       LApp (glued.part, LVar (Env.lvl_to_ix env lvl)), env
     in
     let+ tp = G.local env @@ L.append_tm arg @@ eval_tp lfam in
-    {tp; base; supp; part; env}
+    Gl {tp; base; supp; part; env}
   | _ ->
     G.throw Impossible
 
-and gproj_glued lbl glued =
+and gproj_glued lbl (Gl glued) =
   let open Monad.Notation (G) in
-  match glued.tp with
+  whnf_tp glued.tp |>>
+  function
   | GRcdTp (lbls, gtl) ->
-    let+ tp = tp_of_rcd_field lbls gtl lbl (Glued glued) in
+    let+ tp = tp_of_rcd_field lbls gtl lbl (Glued (Gl glued)) in
     let supp = glued.supp in
     let base = GSnoc (glued.base, GProj lbl) in
     let part, env = LProj (lbl, glued.part), glued.env in
-    {tp; base; supp; part; env}
+    Gl {tp; base; supp; part; env}
   | _ ->
     G.throw Impossible
 
@@ -111,6 +116,13 @@ and eval_tp : ltp -> gtp lm =
     GRcdTp (lbls, gtl)
   | LAbortTp ->
     L.ret GAbortTp
+  | LTpVar ix ->
+    let* env = L.env in
+    begin
+      match Env.proj env ix with
+      | `Tp x -> L.ret x
+      | _ -> L.throw Impossible
+    end
 
 and eval_tele : ltele -> gtele lm =
   let open Monad.Notation (L) in
@@ -121,20 +133,33 @@ and eval_tele : ltele -> gtele lm =
     let+ env = L.env in
     GTlCons (gtp, ltele, env)
 
+and proj_part : gtm -> ltm part -> gtm gm =
+  let open Monad.Notation (G) in
+  fun gtm (Prt part) ->
+  let* thy = G.theory in
+  if Logic.test thy [] part.supp then
+    G.local part.env @@ eval part.part
+  else
+    G.ret gtm
 
+and proj_tp_part : gtp -> ltp part -> gtp gm =
+  let open Monad.Notation (G) in
+  fun gtp (Prt part) ->
+    let* thy = G.theory in
+    if Logic.test thy [] part.supp then
+      G.local part.env @@ eval_tp part.part
+    else
+      G.ret gtp
 
-and tp_of_gtm gtm =
-  guard ~abort:GAbortTp @@
-  match gtm with
-  | GTt | GFf -> G.ret GBool
-  | GLam (gfam, _) ->
-    G.ret @@ GPi gfam
-  | GRcd (lbls, gtele, _) ->
-    G.ret @@ GRcdTp (lbls, gtele)
-  | Glued glued ->
-    G.ret glued.tp
-  | GAbort ->
-    G.ret GAbortTp
+and whnf : gtm -> gtm gm =
+  let open Monad.Notation (G) in
+  fun gtm ->
+    whnf @<< proj_part gtm @@ gtm_bdry gtm
+
+and whnf_tp : gtp -> gtp gm =
+  let open Monad.Notation (G) in
+  fun gtp ->
+    whnf_tp @<< proj_tp_part gtp @@ gtp_bdry gtp
 
 and tp_of_rcd_field lbls gtl lbl gtm =
   guard ~abort:GAbortTp @@
@@ -146,7 +171,7 @@ and tp_of_rcd_field lbls gtl lbl gtm =
     G.ret gtp
   | lbl' :: lbls, GTlCons (_, ltl, env) ->
     let* gtm = gproj lbl' gtm in
-    let* gtl' = G.local (Env.append env gtm) @@ eval_tele ltl in
+    let* gtl' = G.local env @@ L.append_tm gtm @@ eval_tele ltl in
     tp_of_rcd_field lbls gtl' lbl gtm
   | _ ->
     G.throw Impossible

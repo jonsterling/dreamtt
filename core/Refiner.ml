@@ -15,12 +15,12 @@ let with_tp kont tp =
 
 let inst_tp_fam : ltp -> env -> gtm -> gtp G.m =
   fun lfam env gtm ->
-  let envx = Env.append env gtm in
+  let envx = Env.append env @@ `Tm gtm in
   G.local envx @@ Eval.eval_tp lfam
 
 let inst_tm_fam : ltm -> env -> gtm -> gtm G.m =
   fun lfam env gtm ->
-  let envx = Env.append env gtm in
+  let envx = Env.append env @@ `Tm gtm in
   G.local envx @@ Eval.eval lfam
 
 
@@ -111,7 +111,7 @@ let rcd (chk_map : chk_rule StringMap.t) : chk_rule =
 
 let app (fn : syn_rule) (arg : chk_rule) : syn_rule =
   let* gtm0 = fn in
-  Eval.tp_of_gtm gtm0 |> L.global |>> function
+  match tp_of_gtm gtm0 with
   | GPi (gbase, _, _) ->
     let* larg = arg gbase in
     let* gtm1 = Eval.eval larg in
@@ -121,7 +121,7 @@ let app (fn : syn_rule) (arg : chk_rule) : syn_rule =
 
 let proj lbl (syn_rule : syn_rule) : syn_rule =
   let* gtm = syn_rule in
-  Eval.tp_of_gtm gtm |> L.global |>> function
+  match tp_of_gtm gtm with
   | GRcdTp (lbls, _) when List.mem lbl lbls ->
     L.global @@ Eval.gproj lbl gtm
   | _ ->
@@ -169,8 +169,8 @@ let rec conv_ : gtm -> chk_rule =
     chk_abort
 
 
-and conv_glued_ : glued -> chk_rule =
-  fun glued gtp ->
+and conv_glued_ : (gneu, ltm) glued -> chk_rule =
+  fun (Gl glued) gtp ->
   let* gtm = L.global @@ G.local glued.env @@ Eval.eval glued.part in
   let* () = Equate.equate_gtp gtp glued.tp in
   let* thy = L.theory in
@@ -181,6 +181,9 @@ and conv_glued_ : glued -> chk_rule =
 
 and conv_neu_ : gneu -> ltm L.m =
   function
+  | GNeuAbort ->
+    L.ret LAbort
+
   | GVar lvl ->
     let+ env = L.env in
     let ix = Env.lvl_to_ix env lvl in
@@ -192,7 +195,7 @@ and conv_neu_ : gneu -> ltm L.m =
     | GProj lbl -> L.ret @@ LProj (lbl, ltm)
     | GApp arg ->
       let* ltm = conv_neu_ gneu in
-      let* tp_arg = L.global @@ Eval.tp_of_gtm arg in
+      let tp_arg = tp_of_gtm arg in
       let* larg = conv_ arg tp_arg in
       L.ret @@ LApp (ltm, larg)
 
