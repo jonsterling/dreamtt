@@ -85,6 +85,9 @@ module Refiner : sig
   val rcd : chk_rule StringMap.t -> chk_rule
   val proj : string -> syn_rule -> syn_rule
 
+  (** {2 Extent types} *)
+  val ext_in : chk_rule -> chk_rule
+
   (** {2 Dependent sum types} *)
 
   val sg : tp_rule -> (tm -> tp_rule) -> tp_rule

@@ -53,8 +53,8 @@ and elab_chk_rcode : rcode -> R.chk_rule m =
     ret @@ R.fail_chk ElabError
 
 and elab_chk_lcode (lcode : lcode) : R.chk_rule m =
-  commute R.with_tp @@ fun gtp ->
-  match Core.tp_head gtp with
+  commute R.with_tp @@ fun tp ->
+  match Core.tp_head tp with
   | `Pi ->
     commute R.lam @@ fun var ->
     elab_chk_lcode @@ App (L lcode, L (Core var))
@@ -72,7 +72,9 @@ and elab_chk_lcode (lcode : lcode) : R.chk_rule m =
     let+ chk_map = loop StringMap.empty lbls in
     R.rcd chk_map
   | `Ext ->
-    failwith "todo"
+    (* TODO: will this cause a loop? *)
+    reader @@ fun res ->
+    R.ext_in @@ run res @@ elab_chk_lcode lcode
   | `Abort ->
     ret @@ R.chk_abort
 
