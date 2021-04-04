@@ -172,7 +172,7 @@ let rec conv_ : gtm -> chk_rule =
 and conv_glued_ : (gneu, ltm) glued -> chk_rule =
   fun (Gl glued) gtp ->
   let* gtm = L.global @@ G.local glued.env @@ Eval.eval glued.part in
-  let* () = Equate.equate_gtp gtp glued.tp in
+  let* () = Equate.equate_gtp gtp glued.gtp in
   let* thy = L.theory in
   if Logic.test thy [] glued.supp then
     conv_ gtm gtp

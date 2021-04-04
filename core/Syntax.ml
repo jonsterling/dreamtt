@@ -82,7 +82,7 @@ and gfrm =
     {!glued.part}.
 *)
 
-and ('b, 'a) glued = Gl of {supp : prop; tp : gtp; base : 'b; part : 'a; env : env}
+and ('b, 'a) glued = Gl of {supp : prop; gtp : gtp; base : 'b; part : 'a; env : env}
 
 and 'a part = Prt of {supp : prop; part : 'a; env : env}
 
@@ -116,7 +116,7 @@ let tp_of_gtm : gtm -> gtp =
   | GRcd (lbls, gtele, _) ->
     GRcdTp (lbls, gtele)
   | Glued (Gl glued) ->
-    glued.tp
+    glued.gtp
   | GAbort ->
     GAbortTp
 
@@ -132,7 +132,7 @@ let glued_to_part : ('b, 'a) glued -> 'a part =
 (** Construct a stable glued term, i.e. one form whom the base is nowhere unstable. *)
 let stable_glued : gtp -> 'b -> ('b, ltm) glued =
   fun gtp base ->
-  Gl {supp = Bot; tp = gtp; base; part = LAbort; env = Env.empty}
+  Gl {supp = Bot; gtp; base; part = LAbort; env = Env.empty}
 
 (** {3 Restricting to partial elements} *)
 

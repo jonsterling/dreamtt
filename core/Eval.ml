@@ -73,7 +73,7 @@ and gproj lbl gtm =
 
 and gapp_glued (Gl glued) arg =
   let open Monad.Notation (G) in
-  whnf_tp glued.tp |>> function
+  whnf_tp glued.gtp |>> function
   | GPi (gtp, lfam, env) ->
     let supp = glued.supp in
     let base = GSnoc (glued.base, GApp arg) in
@@ -83,21 +83,21 @@ and gapp_glued (Gl glued) arg =
       let env = Env.append env @@ `Tm arg in
       LApp (glued.part, LVar (Env.lvl_to_ix env lvl)), env
     in
-    let+ tp = G.local env @@ L.append_tm arg @@ eval_tp lfam in
-    Gl {tp; base; supp; part; env}
+    let+ gfib = G.local env @@ L.append_tm arg @@ eval_tp lfam in
+    Gl {gtp = gfib; base; supp; part; env}
   | _ ->
     G.throw Impossible
 
 and gproj_glued lbl (Gl glued) =
   let open Monad.Notation (G) in
-  whnf_tp glued.tp |>>
+  whnf_tp glued.gtp |>>
   function
   | GRcdTp (lbls, gtl) ->
-    let+ tp = tp_of_rcd_field lbls gtl lbl (Glued (Gl glued)) in
+    let+ gtp = tp_of_rcd_field lbls gtl lbl (Glued (Gl glued)) in
     let supp = glued.supp in
     let base = GSnoc (glued.base, GProj lbl) in
     let part, env = LProj (lbl, glued.part), glued.env in
-    Gl {tp; base; supp; part; env}
+    Gl {gtp; base; supp; part; env}
   | _ ->
     G.throw Impossible
 
