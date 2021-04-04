@@ -45,7 +45,7 @@ struct
   let bind_tm gtp kont =
     let* e = env in
     let lvl = Env.fresh e in
-    let var = GEta (GVar (lvl, gtp)) in
+    let var = Glued {tp = gtp; base = GVar (lvl, gtp); supp = Prop.bot; part = LAbort; env = Env.empty} in
     locally (E.append_tm var) @@ kont var
 
   let append_tm gtm m =

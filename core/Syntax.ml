@@ -61,21 +61,19 @@ and gtm =
   | GTt | GFf
   | GLam of gfam * (ltm * env)
   | GRcd of string list * gtele * gtm StringMap.t
-  | GEta of gneu
+  | Glued of glued
   | GAbort
 
 and gneu =
   | GVar of Env.lvl * gtp
   | GSnoc of gneu * gfrm
 
-(*
-   TODO: add "stabilized neutrals" from Sterling-Angiuli '21
-
-and gneu_stab =
+and glued =
   {supp : Logic.prop;
+   tp : gtp;
    base : gneu;
-   part : ltm * env}
-*)
+   part : ltm;
+   env : env}
 
 and gfrm =
   | GProj of string

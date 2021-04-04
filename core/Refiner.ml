@@ -163,14 +163,21 @@ let rec conv_ : gtm -> chk_rule =
     conv_ gtm gfib
   | GRcd (_, _, gmap) ->
     rcd @@ StringMap.map conv_ gmap
-  | GEta gneu ->
-    fun gtp ->
-      let* gtp' = L.global @@ Eval.tp_of_gneu gneu in
-      let* () = Equate.equate_gtp gtp gtp' in
-      conv_neu_ gneu
+  | Glued glued ->
+    conv_glued_ glued
   | GAbort ->
     chk_abort
 
+
+and conv_glued_ : glued -> chk_rule =
+  fun glued gtp ->
+  let* gtm = L.global @@ G.local glued.env @@ Eval.eval glued.part in
+  let* () = Equate.equate_gtp gtp glued.tp in
+  let* thy = L.theory in
+  if Logic.test thy [] glued.supp then
+    conv_ gtm gtp
+  else
+    conv_neu_ glued.base
 
 and conv_neu_ : gneu -> ltm L.m =
   function
@@ -183,13 +190,11 @@ and conv_neu_ : gneu -> ltm L.m =
     let* ltm = conv_neu_ gneu in
     match gfrm with
     | GProj lbl -> L.ret @@ LProj (lbl, ltm)
-    | GApp gtm ->
-      Eval.tp_of_gneu gneu |> L.global |>> function
-      | GPi (gbase, _, _) ->
-        let+ ltm' = conv_ gtm gbase in
-        LApp (ltm, ltm')
-      | _ ->
-        L.throw TypeError
+    | GApp arg ->
+      let* ltm = conv_neu_ gneu in
+      let* tp_arg = L.global @@ Eval.tp_of_gtm arg in
+      let* larg = conv_ arg tp_arg in
+      L.ret @@ LApp (ltm, larg)
 
 let conv : syn_rule -> chk_rule =
   fun syn gtp ->

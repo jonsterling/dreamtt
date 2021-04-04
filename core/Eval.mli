@@ -9,5 +9,4 @@ val gapp : gtm -> gtm -> gtm gm
 val gproj : string -> gtm -> gtm gm
 
 val tp_of_gtm : gtm -> gtp gm
-val tp_of_gneu : gneu -> gtp gm
 

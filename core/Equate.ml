@@ -60,7 +60,7 @@ and equate_base gtm0 gtm1 =
   match gtm0, gtm1 with
   | GTt, GTt | GFf, GFf ->
     L.ret ()
-  | GEta _, GEta _ ->
+  | Glued _, Glued _ ->
     raise Todo
   | _ ->
     raise UnequalTerms
