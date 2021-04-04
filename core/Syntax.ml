@@ -65,7 +65,7 @@ and gtm =
   | GAbort
 
 and gneu =
-  | GVar of Env.lvl * gtp
+  | GVar of Env.lvl
   | GSnoc of gneu * gfrm
 
 and glued =
