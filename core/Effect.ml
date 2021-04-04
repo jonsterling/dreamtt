@@ -3,7 +3,7 @@ open Syntax
 
 module E =
 struct
-  type local = {thy : Logic.thy; env : [`Tm of gtm | `Tp of gtp] Env.t}
+  type local = {thy : Logic.thy; env : env}
   let update_thy upd {thy; env} =
     {thy = Logic.update upd thy; env}
 

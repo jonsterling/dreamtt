@@ -96,7 +96,9 @@ and ('b, 'a) glued = Gl of {supp : gprop; gtp : gtp; base : 'b; part : 'a; env :
 
 and 'a part = Prt of {supp : gprop; part : 'a; env : env}
 
-and env = [`Tm of gtm | `Tp of gtp] Env.t
+and env = cell Env.t
+
+and cell = [`Tm of gtm | `Tp of gtp | `Prop of gprop]
 
 
 (** {1 Convenience } *)

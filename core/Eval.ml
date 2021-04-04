@@ -8,6 +8,7 @@ module rec Eval : sig
   val eval : ltm -> gtm lm
   val eval_tp : ltp -> gtp lm
   val eval_tele : ltele -> gtele lm
+  val eval_prop : lprop -> gprop lm
 end =
 struct
   open Compute
@@ -71,6 +72,19 @@ struct
       let* gtp = eval_tp ltp in
       let+ env = L.env in
       GTlCons (gtp, ltele, env)
+
+  let eval_prop : lprop -> gprop lm =
+    function
+    | PTop -> L.ret PTop
+    | PBot -> L.ret PBot
+    | PVar ix ->
+      let* env = L.env in
+      begin
+        match Env.proj env ix with
+        | `Prop x -> L.ret x
+        | _ -> L.throw Impossible
+      end
+
 end
 and Compute : sig
   val whnf : gtm -> gtm gm
