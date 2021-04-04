@@ -3,6 +3,7 @@ open Syntax
 open Effect
 
 exception UnequalTypes
+exception UnequalTerms
 exception Impossible
 exception Todo
 
@@ -50,8 +51,19 @@ and equate_gtm : gtp -> gtm -> gtm -> unit L.m =
     equate_fun gbase lfam env
   | GRcdTp (lbls, gtl) ->
     equate_rcd lbls gtl
-  | _ -> raise Todo
+  | GBool ->
+    equate_base
+  | GAbortTp ->
+    fun _ _ -> L.ret ()
 
+and equate_base gtm0 gtm1 =
+  match gtm0, gtm1 with
+  | GTt, GTt | GFf, GFf ->
+    L.ret ()
+  | GEta _, GEta _ ->
+    raise Todo
+  | _ ->
+    raise UnequalTerms
 
 and equate_fun gbase lfam env gf0 gf1 =
   L.bind_tm gbase @@ fun var ->
