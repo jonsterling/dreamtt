@@ -45,13 +45,12 @@ and equate_gtele : gtele -> gtele -> unit L.m =
       L.throw UnequalTypes
 
 and equate_gtm : gtp -> gtm -> gtm -> unit L.m =
-  fun gtp gtm0 gtm1 ->
-    match gtp with
-    | GPi (gbase, lfam, env) ->
-      equate_fun gbase lfam env gtm0 gtm1
-    | GRcdTp (lbls, gtl) ->
-      equate_rcd lbls gtl gtm0 gtm1
-    | _ -> raise Todo
+  function
+  | GPi (gbase, lfam, env) ->
+    equate_fun gbase lfam env
+  | GRcdTp (lbls, gtl) ->
+    equate_rcd lbls gtl
+  | _ -> raise Todo
 
 
 and equate_fun gbase lfam env gf0 gf1 =
