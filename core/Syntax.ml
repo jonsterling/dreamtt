@@ -84,6 +84,7 @@ and env = [`Tm of gtm | `Tp of gtp] Env.t
 
 type tp_head = [`Pi | `Rcd of string list | `Bool | `Abort]
 
+(** Project the name of the head constructor of a type; useful for guiding elaboration. *)
 let tp_head : gtp -> tp_head =
   function
   | GBool -> `Pi
@@ -91,15 +92,17 @@ let tp_head : gtp -> tp_head =
   | GRcdTp (lbls, _) -> `Rcd lbls
   | GAbortTp -> `Abort
 
+
+(** Project the partial element from a glued term. *)
 let glued_to_part : ('b, 'a) glued -> 'a part =
   function
   | Gl {supp; part; env; _} ->
     Prt {supp; part; env}
 
 
-let gtm_to_part : gtm -> ltm part =
-  fun gtm ->
-  let supp = Prop.top in
+(** Restrict a total term to a partial term. *)
+let gtm_to_part : Logic.prop -> gtm -> ltm part =
+  fun supp gtm ->
   let part, env =
     let env0 = Env.empty in
     let lvl = Env.fresh env0 in
@@ -109,9 +112,9 @@ let gtm_to_part : gtm -> ltm part =
   in
   Prt {supp; part; env}
 
-let gtp_to_part : gtp -> ltp part =
-  fun gtp ->
-  let supp = Prop.top in
+(** Restrict a total type to a partial type. *)
+let gtp_to_part : Logic.prop -> gtp -> ltp part =
+  fun supp gtp ->
   let part, env =
     let env0 = Env.empty in
     let lvl = Env.fresh env0 in
@@ -121,11 +124,12 @@ let gtp_to_part : gtp -> ltp part =
   in
   Prt {supp; part; env}
 
-
+(** Construct a stable glued term, i.e. one form whom the base is nowhere unstable. *)
 let stable_glued : gtp -> 'b -> ('b, ltm) glued =
   fun gtp base->
   Gl {supp = Prop.bot; tp = gtp; base; part = LAbort; env = Env.empty}
 
+(** Project the type of a term: this is efficient and non-recursive. *)
 let tp_of_gtm : gtm -> gtp =
   function
   | GTt | GFf -> GBool
@@ -138,16 +142,18 @@ let tp_of_gtm : gtm -> gtp =
   | GAbort ->
     GAbortTp
 
+(** Project the partial element that a term must contingently compute to. *)
 let gtm_bdry : gtm -> ltm part =
   function
   | Glued glued ->
     glued_to_part glued
   | gtm ->
-    gtm_to_part gtm
+    gtm_to_part Prop.top gtm
 
+(** Project the partial element that a type must contingently compute to. *)
 let gtp_bdry : gtp -> ltp part =
   function
   | gtp ->
-    gtp_to_part gtp
+    gtp_to_part Prop.top gtp
 
 

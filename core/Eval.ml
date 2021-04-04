@@ -133,33 +133,41 @@ and eval_tele : ltele -> gtele lm =
     let+ env = L.env in
     GTlCons (gtp, ltele, env)
 
-and proj_part : gtm -> ltm part -> gtm gm =
+and proj_part : gtm -> ltm part -> [`Done | `Step of gtm] gm =
   let open Monad.Notation (G) in
   fun gtm (Prt part) ->
   let* thy = G.theory in
   if Logic.test thy [] part.supp then
-    G.local part.env @@ eval part.part
+    let+ gtm = G.local part.env @@ eval part.part in
+    `Step gtm
   else
-    G.ret gtm
+    G.ret `Done
 
-and proj_tp_part : gtp -> ltp part -> gtp gm =
+and proj_tp_part : gtp -> ltp part -> [`Done | `Step of gtp] gm =
   let open Monad.Notation (G) in
   fun gtp (Prt part) ->
     let* thy = G.theory in
     if Logic.test thy [] part.supp then
-      G.local part.env @@ eval_tp part.part
+      let+ gtp = G.local part.env @@ eval_tp part.part in
+      `Step gtp
     else
-      G.ret gtp
+      G.ret `Done
 
 and whnf : gtm -> gtm gm =
   let open Monad.Notation (G) in
   fun gtm ->
-    whnf @<< proj_part gtm @@ gtm_bdry gtm
+    proj_part gtm @@ gtm_bdry gtm |>>
+    function
+    | `Done -> G.ret gtm
+    | `Step gtm -> whnf gtm
 
 and whnf_tp : gtp -> gtp gm =
   let open Monad.Notation (G) in
   fun gtp ->
-    whnf_tp @<< proj_tp_part gtp @@ gtp_bdry gtp
+    proj_tp_part gtp (gtp_bdry gtp) |>>
+    function
+    | `Done -> G.ret gtp
+    | `Step gtp -> whnf_tp gtp
 
 and tp_of_rcd_field lbls gtl lbl gtm =
   guard ~abort:GAbortTp @@
