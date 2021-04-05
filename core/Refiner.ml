@@ -135,15 +135,9 @@ let proj lbl (syn_rule : syn_rule) : syn_rule =
 let ext_in (chk_rule : chk_rule) : chk_rule =
   ChkRule.rule @@
   function
-  | GExtTp (gtp, Prt part) ->
-    let* ltm = ChkRule.run chk_rule gtp in
-    let* () =
-      L.scope_thy (`Ext part.supp) @@
-      let* gtm = Eval.eval ltm in
-      let* gtm' = Eval.eval part.part in
-      Equate.equate_gtm gtp gtm gtm'
-    in
-    L.ret @@ LExtIn (gtp, Prt part, ltm)
+  | GExtTp (gtp, part) ->
+    let* ltm = ChkRule.brun chk_rule gtp part in
+    L.ret @@ LExtIn (gtp, part, ltm)
   | _ ->
     L.throw TypeError
 
