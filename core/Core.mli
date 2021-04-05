@@ -53,6 +53,7 @@ module Refiner : sig
   (** {1 Inference rules} *)
 
   (** {2 Telescopes} *)
+
   val tl_nil : tele_rule
   val tl_cons : string -> tp_rule -> (tm -> tele_rule) -> tele_rule
 
