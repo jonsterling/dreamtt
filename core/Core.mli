@@ -93,7 +93,7 @@ module Refiner : sig
 
   (** {2 Structural rules} *)
 
-  (** Every core language term carries has a unique type, and can hence be syn_rulethesized. *)
+  (** Every core language term carries has a unique type, and can hence be synthesized. *)
   val core : tm -> syn_rule
 
   (** The {i conversion rule} appears in the bidirectional setting as the
