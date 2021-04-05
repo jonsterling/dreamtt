@@ -1,5 +1,6 @@
 open Basis
 open Code
+open Core.Rule
 
 module R = Core.Refiner
 
@@ -20,7 +21,7 @@ let commute rule f : _ m =
 let add_var x var =
   locally @@ StringMap.add x var
 
-let rec elab_chk_code : code -> R.chk_rule m =
+let rec elab_chk_code : code -> chk_rule m =
   fun code ->
   M.reader @@ fun res ->
   R.intro_implicit_connectives @@
@@ -31,7 +32,7 @@ let rec elab_chk_code : code -> R.chk_rule m =
   | L lcode ->
     elab_chk_lcode lcode
 
-and elab_syn_code : code -> R.syn_rule m =
+and elab_syn_code : code -> syn_rule m =
   fun code ->
   M.reader @@ fun res ->
   R.elim_implicit_connectives @@
@@ -42,7 +43,7 @@ and elab_syn_code : code -> R.syn_rule m =
   | R _ ->
     ret @@ R.fail_syn ElabError
 
-and elab_chk_rcode : rcode -> R.chk_rule m =
+and elab_chk_rcode : rcode -> chk_rule m =
   function
   | Tt -> ret R.tt
   | Ff -> ret R.ff
@@ -60,7 +61,7 @@ and elab_chk_rcode : rcode -> R.chk_rule m =
   | _ ->
     ret @@ R.fail_chk ElabError
 
-and elab_chk_lcode (lcode : lcode) : R.chk_rule m =
+and elab_chk_lcode (lcode : lcode) : chk_rule m =
   commute R.with_tp @@ fun tp ->
   match Core.tp_head tp with
   | `Pi ->
@@ -84,7 +85,7 @@ and elab_chk_lcode (lcode : lcode) : R.chk_rule m =
   | `Ext ->
     ret @@ R.fail_chk ElabError
 
-and elab_syn_lcode : lcode -> R.syn_rule m =
+and elab_syn_lcode : lcode -> syn_rule m =
   function
   | Var x ->
     let+ res = read in
@@ -105,14 +106,14 @@ and elab_syn_lcode : lcode -> R.syn_rule m =
   | Core tm ->
     ret @@ R.core tm
 
-and elab_tp_code : code -> R.tp_rule m =
+and elab_tp_code : code -> tp_rule m =
   function
   | R rcode ->
     elab_tp_rcode rcode
   | _ ->
     ret @@ R.fail_tp ElabError
 
-and elab_tp_rcode : rcode -> R.tp_rule m =
+and elab_tp_rcode : rcode -> tp_rule m =
   function
   | Bool ->
     ret R.bool
@@ -132,7 +133,7 @@ and elab_tp_rcode : rcode -> R.tp_rule m =
   | _ ->
     ret @@ R.fail_tp ElabError
 
-and elab_tele_code : tele_code -> R.tele_rule m =
+and elab_tele_code : tele_code -> tele_rule m =
   function
   | TlNil ->
     ret R.tl_nil

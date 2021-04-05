@@ -40,6 +40,8 @@ val tp_head : tp -> tp_head
 
 (** {1 Constructing well-typed terms} *)
 
+module Rule = Rule
+
 (** The refiner is the only way to construct terms. Any term constructed by the refiner is
     guaranteed to be well-typed, in the tradition of LCF. *)
 module Refiner : sig
@@ -56,10 +58,7 @@ module Refiner : sig
       the context.
   *)
 
-  type tp_rule
-  type chk_rule
-  type syn_rule
-  type tele_rule
+  open Rule
 
   (** {1 Inference rules} *)
 

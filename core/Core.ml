@@ -18,4 +18,5 @@ type tm = gtm Proof.t
 
 let tp_of_tm = tp_of_gtm
 
+module Rule = Rule
 module Refiner = Refiner
