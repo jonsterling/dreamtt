@@ -22,8 +22,8 @@ open Basis
 
 type 'v prop =
   | PVar of 'v
-  | PTop
   | PBot
+  | PMeet of 'v prop list
 
 type gprop = Env.lvl prop
 type lprop = Env.ix prop

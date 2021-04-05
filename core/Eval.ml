@@ -15,10 +15,13 @@ struct
   open Monad.Notation (L)
 
   module LStringMapUtil = Monad.MapUtil (L) (StringMap)
+  module LListUtil = Monad.ListUtil (L)
 
-  let eval_prop : lprop -> gprop lm =
+  let rec eval_prop : lprop -> gprop lm =
     function
-    | PTop -> L.ret PTop
+    | PMeet lprops ->
+      let+ gprops = LListUtil.flat_map eval_prop lprops in
+      PMeet gprops
     | PBot -> L.ret PBot
     | PVar ix ->
       let* env = L.env in

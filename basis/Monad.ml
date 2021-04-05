@@ -66,3 +66,15 @@ struct
     in
     loop N.empty @@ N.bindings map
 end
+
+module ListUtil (M : S) =
+struct
+  open Notation (M)
+  let rec flat_map (f : 'a -> 'b M.m) =
+    function
+    | [] -> M.ret []
+    | x :: xs ->
+      let* y = f x in
+      let* ys = flat_map f xs in
+      M.ret (y :: ys)
+end
