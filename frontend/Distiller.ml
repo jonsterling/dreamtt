@@ -52,3 +52,6 @@ let rec distill_ltm : Syntax.ltm -> code m =
 
   | LExtOut ltm ->
     distill_ltm ltm
+
+  | LExtIn (_, _, ltm) ->
+    distill_ltm ltm

@@ -113,6 +113,12 @@ module Refiner : sig
 
   val with_tp : (tp -> chk_rule) -> chk_rule
 
+
+  (** {2 Built-in tacticals} *)
+
+  val intro_implicit_connectives : chk_rule -> chk_rule
+  val elim_implicit_connectives : syn_rule -> syn_rule
+
   (** {2 Failing rules}
       The following rules will fail with an exception.
   *)

@@ -57,6 +57,9 @@ struct
       | LExtOut ltm ->
         let* gtm = eval ltm in
         L.global @@ gext_out gtm
+      | LExtIn (gtp, part, ltm) ->
+        let+ gtm = eval ltm in
+        GExtIn (gtp, part, gtm)
       | LAbort ->
         L.ret GAbort
 

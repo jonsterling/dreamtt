@@ -21,14 +21,22 @@ let add_var x var =
   locally @@ StringMap.add x var
 
 let rec elab_chk_code : code -> R.chk_rule m =
-  function
+  fun code ->
+  M.reader @@ fun res ->
+  R.intro_implicit_connectives @@
+  M.run res @@
+  match code with
   | R rcode ->
     elab_chk_rcode rcode
   | L lcode ->
     elab_chk_lcode lcode
 
 and elab_syn_code : code -> R.syn_rule m =
-  function
+  fun code ->
+  M.reader @@ fun res ->
+  R.elim_implicit_connectives @@
+  M.run res @@
+  match code with
   | L lcode ->
     elab_syn_lcode lcode
   | R _ ->
@@ -71,12 +79,10 @@ and elab_chk_lcode (lcode : lcode) : R.chk_rule m =
     in
     let+ chk_map = loop StringMap.empty lbls in
     R.rcd chk_map
-  | `Ext ->
-    (* TODO: will this cause a loop? *)
-    reader @@ fun res ->
-    R.ext_in @@ run res @@ elab_chk_lcode lcode
   | `Abort ->
     ret @@ R.chk_abort
+  | `Ext ->
+    ret @@ R.fail_chk ElabError
 
 and elab_syn_lcode : lcode -> R.syn_rule m =
   function

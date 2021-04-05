@@ -70,6 +70,8 @@ and ltm =
   | LRcd of string list * gtele * ltm StringMap.t
   | LProj of string * ltm
   | LExtOut of ltm
+  | LExtIn of gtp * ltm part * ltm
+
   | LAbort
 
 and gtm =
@@ -77,9 +79,8 @@ and gtm =
   | GLam of gfam * ltm * env
   | GRcd of string list * gtele * gtm StringMap.t
   | Glued of (gneu, ltm) glued
-  | GAbort
-
   | GExtIn of gtp * ltm part * gtm
+  | GAbort
 
 and gneu =
   | GVar of Env.lvl

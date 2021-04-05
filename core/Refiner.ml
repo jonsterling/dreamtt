@@ -137,7 +137,15 @@ let ext_in (chk_rule : chk_rule) : chk_rule =
       let* gtm' = Eval.eval part.part in
       Equate.equate_gtm gtp gtm gtm'
     in
-    failwith ""
+    L.ret @@ LExtIn (gtp, Prt part, ltm)
+  | _ ->
+    L.throw TypeError
+
+let ext_out (syn_rule : syn_rule) : syn_rule =
+  let* gtm = syn_rule in
+  match tp_of_gtm gtm with
+  | GExtTp _ ->
+    L.global @@ Eval.gext_out gtm
   | _ ->
     L.throw TypeError
 
@@ -225,3 +233,20 @@ let conv : syn_rule -> chk_rule =
 let fail_tp exn = L.throw exn
 let fail_chk exn _ = L.throw exn
 let fail_syn exn = L.throw exn
+
+
+let elim_implicit_connectives : syn_rule -> syn_rule =
+  fun syn ->
+  let* tm = syn in
+  match tp_head @@ tp_of_gtm tm with
+  | `Ext ->
+    ext_out @@ L.ret tm
+  | _ ->
+    L.ret tm
+
+let intro_implicit_connectives : chk_rule -> chk_rule =
+  fun chk ->
+  with_tp @@ fun tp ->
+  match tp_head tp with
+  | `Ext -> ext_in chk
+  |_ -> chk
