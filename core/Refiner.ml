@@ -8,44 +8,12 @@ open Monad.Notation (L)
 let core x =
   SynRule.rule @@ L.ret x
 
-let bool : tp_rule =
-  TpRule.rule @@
-  L.ret LBool
-
-let tt : chk_rule =
-  ChkRule.rule @@
-  function
-  | GBool -> L.ret LTt
-  | _ -> L.throw TypeError
-
-let ff : chk_rule =
-  ChkRule.rule @@
-  function
-  | GBool -> L.ret LFf
-  | _ -> L.throw TypeError
-
+include BoolRules
 include PiRules
 include RcdRules
 include TlRules
 include SgRules
-
-let ext_in (chk_rule : chk_rule) : chk_rule =
-  ChkRule.rule @@
-  function
-  | GExtTp (gtp, part) ->
-    let* ltm = ChkRule.brun chk_rule gtp part in
-    L.ret @@ LExtIn (gtp, part, ltm)
-  | _ ->
-    L.throw TypeError
-
-let ext_out (syn_rule : syn_rule) : syn_rule =
-  SynRule.rule @@
-  let* gtm = SynRule.run syn_rule in
-  match tp_of_gtm gtm with
-  | GExtTp _ ->
-    L.global @@ Eval.gext_out gtm
-  | _ ->
-    L.throw TypeError
+include ExtRules
 
 let chk_abort : chk_rule =
   ChkRule.rule @@

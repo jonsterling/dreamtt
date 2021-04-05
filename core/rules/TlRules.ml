@@ -1,8 +1,4 @@
-open Basis
-open Syntax
-open Rule
-open Effect
-open Monad.Notation (L)
+open RuleKit
 
 let tl_nil : tele_rule =
   TeleRule.rule @@ L.ret ([], LTlNil)

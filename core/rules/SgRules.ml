@@ -1,9 +1,4 @@
-open Basis
-open Syntax
-open Rule
-open Effect
-open Monad.Notation (L)
-
+open RuleKit
 open TlRules
 open RcdRules
 

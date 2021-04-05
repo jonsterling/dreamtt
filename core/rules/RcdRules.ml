@@ -1,8 +1,4 @@
-open Basis
-open Syntax
-open Rule
-open Effect
-open Monad.Notation (L)
+open RuleKit
 
 let rcd_tp (tele : tele_rule) : tp_rule =
   TpRule.rule @@

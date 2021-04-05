@@ -1,8 +1,4 @@
-open Basis
-open Syntax
-open Rule
-open Effect
-open Monad.Notation (L)
+open RuleKit
 
 let pi (base : tp_rule) (fam : gtm -> tp_rule) : tp_rule =
   TpRule.rule @@
