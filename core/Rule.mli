@@ -15,7 +15,10 @@ end
 module ChkRule : sig
   type t = chk_rule
   val rule : (gtp -> ltm L.m) -> t
+  val brule : (gtp -> ltm part -> ltm L.m) -> t
+
   val run : t -> (gtp -> ltm L.m)
+  val brun : t -> (gtp -> ltm part -> ltm L.m)
 end
 
 module SynRule : sig
