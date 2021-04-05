@@ -14,18 +14,8 @@ module Equate = Equate
 module Logic = Logic
 module Effect = Effect
 
-(** {2 Proof abstraction boundary} *)
-
-(** We wrap the syntax in an abstraction boundary as in LCF. *)
-
-module Proof :
-sig
-  type 'a t
-  val out : 'a t -> 'a
-end
-
-type tp = Syntax.gtp Proof.t
-type tm = Syntax.gtm Proof.t
+type tp = Syntax.gtp
+type tm = Syntax.gtm
 
 val tp_of_tm : tm -> tp
 
@@ -85,7 +75,9 @@ module Refiner : sig
   val proj : string -> syn_rule -> syn_rule
 
   (** {2 Extent types} *)
+
   val ext_in : chk_rule -> chk_rule
+  val ext_out : syn_rule -> syn_rule
 
   (** {2 Dependent sum types} *)
 

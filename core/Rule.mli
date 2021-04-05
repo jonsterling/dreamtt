@@ -33,3 +33,5 @@ module TeleRule : sig
   val rule : (string list * ltele) L.m -> t
   val run : t -> (string list * ltele) L.m
 end
+
+exception TypeError

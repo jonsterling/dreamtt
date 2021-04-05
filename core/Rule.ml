@@ -2,6 +2,9 @@ open Basis
 open Syntax
 open Effect
 
+exception TypeError
+
+
 type tp_rule = ltp L.m
 type syn_rule = gtm L.m
 
