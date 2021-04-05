@@ -87,6 +87,7 @@ module Refiner : sig
   val snd : syn_rule -> syn_rule
 
   (** {2 Logical layer} *)
+
   val chk_abort : chk_rule
 
 
