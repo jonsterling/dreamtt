@@ -1,16 +1,16 @@
 {0 dreamtt}
 
-Welcome to Dreamtt's documentation!
+Welcome to [dreamtt]'s documentation!
 
 {1 Overview}
 
-Dreamtt is a pedagogic implementation of abstract bidirectional elaboration for dependent type theory.
+[dreamtt]is a pedagogic implementation of abstract bidirectional elaboration for dependent type theory.
 
 It is internally organized into 3 parts:
 
-- [Basis] defines functional concepts such as [Monad] and technical utilities like [Pp] (a pretty-printer)
-- [Core] implements the internal AST and the key algorithms
-- [Frontend] provides the user-facing parts, i.e., the surface language
+- {!Basis} defines functional concepts such as {!Basis.Monad} and technical utilities like {!Basis.Pp} (some utilities useful for pretty printers)
+- {!Core} implements the internal AST and the key algorithms
+- {!Frontend} provides the user-facing parts, i.e., the surface language
 
 {1 API documentation}
 
