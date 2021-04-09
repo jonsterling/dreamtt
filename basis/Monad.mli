@@ -33,3 +33,8 @@ module MapUtil (M : S) (N : Map.S) :
 sig
   val flat_map : ('a -> 'b M.m) -> 'a N.t -> 'b N.t M.m
 end
+
+module ListUtil (M : S) :
+sig
+  val flat_map : ('a -> 'b M.m) -> 'a list -> 'b list M.m
+end

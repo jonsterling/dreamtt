@@ -2,6 +2,7 @@
  (name Core)
  (libraries dreamtt.basis)
  (flags
-  (:standard -w -32-26-27-37))
+  (:standard -w -32-34-26-27-37))
  (public_name dreamtt.core))
 
+(include_subdirs unqualified)

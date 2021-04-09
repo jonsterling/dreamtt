@@ -7,6 +7,7 @@ val eval_tele : ltele -> gtele lm
 
 val gapp : gtm -> gtm -> gtm gm
 val gproj : string -> gtm -> gtm gm
+val gext_out : gtm -> gtm gm
 
 val whnf : gtm -> gtm gm
 val whnf_tp : gtp -> gtp gm

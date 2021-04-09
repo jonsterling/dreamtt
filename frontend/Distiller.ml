@@ -49,3 +49,9 @@ let rec distill_ltm : Syntax.ltm -> code m =
 
   | LAbort ->
     ret @@ R Abort
+
+  | LExtOut ltm ->
+    distill_ltm ltm
+
+  | LExtIn (_, _, ltm) ->
+    distill_ltm ltm

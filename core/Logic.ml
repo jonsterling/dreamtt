@@ -16,15 +16,17 @@ type thy =
 let emp =
   Consistent {true_vars = VarSet.empty}
 
-let ext thy phi =
+let rec ext thy phi =
   match thy with
   | Inconsistent -> Inconsistent
   | Consistent {true_vars} ->
     match phi with
     | PVar x ->
       Consistent {true_vars = VarSet.add x true_vars}
-    | PTop ->
+    | PMeet [] ->
       thy
+    | PMeet (phi :: phis) ->
+      ext (ext thy phi) (PMeet phis)
     | PBot ->
       Inconsistent
 
@@ -37,10 +39,13 @@ let test_closed thy phi =
   match thy with
   | Inconsistent -> true
   | Consistent {true_vars} ->
-    match phi with
-    | PVar x -> VarSet.mem x true_vars
-    | PTop -> true
-    | PBot -> false
+    let rec loop phi =
+      match phi with
+      | PVar x -> VarSet.mem x true_vars
+      | PMeet phis -> List.for_all loop phis
+      | PBot -> false
+    in
+    loop phi
 
 let test thy cx phi =
   let thy' = List.fold_left ext thy cx in

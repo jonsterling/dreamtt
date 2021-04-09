@@ -22,8 +22,8 @@ open Basis
 
 type 'v prop =
   | PVar of 'v
-  | PTop
   | PBot
+  | PMeet of 'v prop list
 
 type gprop = Env.lvl prop
 type lprop = Env.ix prop
@@ -34,6 +34,7 @@ type lprop = Env.ix prop
 type ltp =
   | LPi of ltp * ltp
   | LRcdTp of string list * ltele
+  | LExtTp of ltp * lprop * ltm
   | LBool
   | LAbortTp
   | LTpVar of Env.ix
@@ -41,6 +42,7 @@ type ltp =
 and gtp =
   | GPi of gfam
   | GRcdTp of string list * gtele
+  | GExtTp of gtp * ltm part
   | GBool
   | GAbortTp
 
@@ -67,6 +69,9 @@ and ltm =
 
   | LRcd of string list * gtele * ltm StringMap.t
   | LProj of string * ltm
+  | LExtOut of ltm
+  | LExtIn of gtp * ltm part * ltm
+
   | LAbort
 
 and gtm =
@@ -74,6 +79,7 @@ and gtm =
   | GLam of gfam * ltm * env
   | GRcd of string list * gtele * gtm StringMap.t
   | Glued of (gneu, ltm) glued
+  | GExtIn of gtp * ltm part * gtm
   | GAbort
 
 and gneu =
@@ -83,6 +89,7 @@ and gneu =
 and gfrm =
   | GProj of string
   | GApp of gtm
+  | GExtOut
 
 (** A glued term combines a total element {!glued.base} with a compatible
     partial element {!glued.part} under {!glued.supp}; the invariant is that
@@ -103,14 +110,15 @@ and cell = [`Tm of gtm | `Tp of gtp | `Prop of gprop]
 
 (** {1 Convenience } *)
 
-type tp_head = [`Pi | `Rcd of string list | `Bool | `Abort]
+type tp_head = [`Pi | `Rcd of string list | `Ext | `Bool | `Abort]
 
 (** Project the name of the head constructor of a type; useful for guiding elaboration. *)
 let tp_head : gtp -> tp_head =
   function
   | GBool -> `Pi
-  | GPi _ -> `Bool
   | GRcdTp (lbls, _) -> `Rcd lbls
+  | GExtTp _ -> `Ext
+  | GPi _ -> `Bool
   | GAbortTp -> `Abort
 
 
@@ -124,6 +132,8 @@ let tp_of_gtm : gtm -> gtp =
     GRcdTp (lbls, gtele)
   | Glued (Gl glued) ->
     glued.gtp
+  | GExtIn (gtp, part, _) ->
+    GExtTp (gtp, part)
   | GAbort ->
     GAbortTp
 

@@ -11,6 +11,7 @@ include module type of Code
 (** {1 Elaboration} *)
 
 module R := Core.Refiner
+module Rule := Core.Rule
 
 module Elaborator :
 sig
@@ -18,23 +19,23 @@ sig
   include Reader.S with type local = resolver
 
   (** The main entry-point: check a piece of code against a type. *)
-  val elab_chk_code : code -> R.chk_rule m
+  val elab_chk_code : code -> Rule.chk_rule m
 
   (** Checking introduction forms against their types. *)
-  val elab_chk_rcode : rcode -> R.chk_rule m
+  val elab_chk_rcode : rcode -> Rule.chk_rule m
 
   (** Rather than transitioning immediately to synthesize when we hit an [lcode],
       we perform type-directed eta expansion. This is the main ingredient to
       enable smooth elaboration of subtypes, including the "retyping principles"
       familiar from ML modules. *)
-  val elab_chk_lcode : lcode -> R.chk_rule m
+  val elab_chk_lcode : lcode -> Rule.chk_rule m
 
   (** Elaborating an elimination form. *)
-  val elab_syn_lcode : lcode -> R.syn_rule m
+  val elab_syn_lcode : lcode -> Rule.syn_rule m
 
   (** Elaborate a type *)
-  val elab_tp_code : code -> R.tp_rule m
-  val elab_tp_rcode : rcode -> R.tp_rule m
+  val elab_tp_code : code -> Rule.tp_rule m
+  val elab_tp_rcode : rcode -> Rule.tp_rule m
 end
 
 

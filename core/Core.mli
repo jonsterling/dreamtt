@@ -14,24 +14,14 @@ module Equate = Equate
 module Logic = Logic
 module Effect = Effect
 
-(** {2 Proof abstraction boundary} *)
-
-(** We wrap the syntax in an abstraction boundary as in LCF. *)
-
-module Proof :
-sig
-  type 'a t
-  val out : 'a t -> 'a
-end
-
-type tp = Syntax.gtp Proof.t
-type tm = Syntax.gtm Proof.t
+type tp = Syntax.gtp
+type tm = Syntax.gtm
 
 val tp_of_tm : tm -> tp
 
 (** {2 Inspecting types} *)
 
-type tp_head = [`Pi | `Rcd of string list | `Bool | `Abort]
+type tp_head = [`Pi | `Rcd of string list | `Ext | `Bool | `Abort]
 
 (** The head of a type can be exposed in order to guide the elaborator.  It is
     (surprisingly) unnecessary to expose any more data of a type to the
@@ -39,6 +29,8 @@ type tp_head = [`Pi | `Rcd of string list | `Bool | `Abort]
 val tp_head : tp -> tp_head
 
 (** {1 Constructing well-typed terms} *)
+
+module Rule = Rule
 
 (** The refiner is the only way to construct terms. Any term constructed by the refiner is
     guaranteed to be well-typed, in the tradition of LCF. *)
@@ -56,14 +48,12 @@ module Refiner : sig
       the context.
   *)
 
-  type tp_rule
-  type chk_rule
-  type syn_rule
-  type tele_rule
+  open Rule
 
   (** {1 Inference rules} *)
 
   (** {2 Telescopes} *)
+
   val tl_nil : tele_rule
   val tl_cons : string -> tp_rule -> (tm -> tele_rule) -> tele_rule
 
@@ -85,6 +75,11 @@ module Refiner : sig
   val rcd : chk_rule StringMap.t -> chk_rule
   val proj : string -> syn_rule -> syn_rule
 
+  (** {2 Extent types} *)
+
+  val ext_in : chk_rule -> chk_rule
+  val ext_out : syn_rule -> syn_rule
+
   (** {2 Dependent sum types} *)
 
   val sg : tp_rule -> (tm -> tp_rule) -> tp_rule
@@ -93,12 +88,13 @@ module Refiner : sig
   val snd : syn_rule -> syn_rule
 
   (** {2 Logical layer} *)
+
   val chk_abort : chk_rule
 
 
   (** {2 Structural rules} *)
 
-  (** Every core language term carries has a unique type, and can hence be syn_rulethesized. *)
+  (** Every core language term carries has a unique type, and can hence be synthesized. *)
   val core : tm -> syn_rule
 
   (** The {i conversion rule} appears in the bidirectional setting as the
@@ -109,6 +105,12 @@ module Refiner : sig
   (** {1 Rule combinators} *)
 
   val with_tp : (tp -> chk_rule) -> chk_rule
+
+
+  (** {2 Built-in tacticals} *)
+
+  val intro_implicit_connectives : chk_rule -> chk_rule
+  val elim_implicit_connectives : syn_rule -> syn_rule
 
   (** {2 Failing rules}
       The following rules will fail with an exception.
