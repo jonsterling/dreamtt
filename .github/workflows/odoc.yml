@@ -2,7 +2,7 @@ name: GitHub Pages by odoc
 on:
   push:
     branches:
-      - master
+      - main
       - doc*
 jobs:
   odoc:
