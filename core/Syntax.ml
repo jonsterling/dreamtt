@@ -108,8 +108,8 @@ type tp_head = [`Pi | `Rcd of string list | `Bool | `Abort]
 (** Project the name of the head constructor of a type; useful for guiding elaboration. *)
 let tp_head : gtp -> tp_head =
   function
-  | GBool -> `Pi
-  | GPi _ -> `Bool
+  | GBool -> `Bool
+  | GPi _ -> `Pi
   | GRcdTp (lbls, _) -> `Rcd lbls
   | GAbortTp -> `Abort
 
