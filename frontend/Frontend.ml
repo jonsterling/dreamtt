@@ -6,3 +6,4 @@ include Code
 
 module Elaborator = Elaborator
 module Distiller = Distiller
+module Driver = Driver

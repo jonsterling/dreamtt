@@ -46,3 +46,6 @@ module Distiller : sig
   val run : string Core.Env.t -> 'a m -> 'a
   val distill_ltm : Core.Syntax.ltm -> code m
 end
+
+module Driver = Driver
+(** Toplevel driver for the proof assistant *)

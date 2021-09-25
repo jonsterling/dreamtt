@@ -1,6 +1,6 @@
 (executables
  (names main)
- (libraries dreamtt.core))
+ (libraries dreamtt.frontend cmdliner))
 
 (install
  (section bin)
